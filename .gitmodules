@@ -1,0 +1,3 @@
+[submodule "LeGO-LOAM"]
+	path = LeGO-LOAM
+	url = https://github.com/RobustFieldAutonomyLab/LeGO-LOAM

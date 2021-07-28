@@ -733,19 +733,21 @@ public:
             pcl::toROSMsg(*cloudOut, cloudMsgTemp);
             cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
             cloudMsgTemp.header.frame_id = "/camera_init";
-            pubRegisteredCloud.publish(cloudMsgTemp);
+            pubRegisteredCloud.publish(cloudMsgTemp);            
         } 
     }
 
     void visualizeGlobalMapThread(){
+        ROS_INFO_ONCE("visual thread");
         ros::Rate rate(0.2);
         while (ros::ok()){
             rate.sleep();
             publishGlobalMap();
+       
         }
         // save final point cloud
         pcl::io::savePCDFileASCII(fileDirectory+"finalCloud.pcd", *globalMapKeyFramesDS);
-
+        
         string cornerMapString = "/tmp/cornerMap.pcd";
         string surfaceMapString = "/tmp/surfaceMap.pcd";
         string trajectoryString = "/tmp/trajectory.pcd";
@@ -802,13 +804,14 @@ public:
 	    // downsample visualized points
         downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
         downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
- 
+        std::cout<<" Saving Map ... " <<std::endl;
+        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/lego_loam_map.pcd", *globalMapKeyFramesDS);
         sensor_msgs::PointCloud2 cloudMsgTemp;
         pcl::toROSMsg(*globalMapKeyFramesDS, cloudMsgTemp);
         cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
         cloudMsgTemp.header.frame_id = "/camera_init";
         pubLaserCloudSurround.publish(cloudMsgTemp);  
-
+        
         globalMapKeyPoses->clear();
         globalMapKeyPosesDS->clear();
         globalMapKeyFrames->clear();
@@ -816,7 +819,7 @@ public:
     }
 
     void loopClosureThread(){
-
+        ROS_INFO_ONCE("loop thread");
         if (loopClosureEnableFlag == false)
             return;
 

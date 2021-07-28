@@ -207,12 +207,6 @@ public:
         pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/feature_cloud.pcd", *featureCloud);
     }   
     
-    ~LocNetManager() 
-    {
-        // Save Feature Cloud as .pcd file
-        
-    };
-    
     //// Localization
     void loadFeatureCloud(string featurePath)
     {

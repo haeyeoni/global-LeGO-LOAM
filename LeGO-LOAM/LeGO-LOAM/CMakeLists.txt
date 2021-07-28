@@ -61,3 +61,6 @@ target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Open
 
 add_executable(transformFusion src/mapping/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(globalLocalization src/localization/globalLocalization.cpp)
+target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  "${TORCH_LIBRARIES}")

@@ -32,7 +32,9 @@
 //   T. Shan and B. Englot. LeGO-LOAM: Lightweight and Ground-Optimized Lidar Odometry and Mapping on Variable Terrain
 //      IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). October 2018.
 #include "utility.h"
-#include "descriptor.h"
+#include "descriptor.h" 
+#include <fstream>
+#include <iostream>
 
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/geometry/Pose3.h>
@@ -228,13 +230,14 @@ private:
     LocNetManager *locnetManager;
 
 public:  
-
+    
     mapOptimization():
         nh("~")
     {
-        locnetManager = new LocNetManager();
         // LOADING MODEL
+        locnetManager = new LocNetManager();
         nh.param<std::string>("model_path", model_path, "/home/haeyeon/model.pt"); 
+        
         locnetManager->loadModel(model_path);
 
     	ISAM2Params parameters;
@@ -1542,6 +1545,10 @@ public:
                 clearCloud();
             }
         }
+
+        // save gtsam graph 
+        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
+        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
     }
 };
 

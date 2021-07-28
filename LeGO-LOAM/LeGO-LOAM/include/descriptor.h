@@ -24,11 +24,11 @@
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/io/pcd_io.h>
 
 #include <torch/torch.h>
 #include <torch/script.h> 
 #include "utility.h"
-#include <opencv2/plot.hpp>
 
 
 using PointType = pcl::PointXYZI;
@@ -42,12 +42,17 @@ private:
     torch::jit::script::Module descriptor;
 
 public: 
-    LocNetManager() = default;
-
-    void loadModel(string model_path)
+    LocNetManager() 
+    {
+        kdtreeFeatures.reset(new pcl::KdTreeFLANN<PointType>());
+        featureCloud.reset(new pcl::PointCloud<PointType>());
+    }
+    
+    /// Mapping
+    void loadModel(string modelPath)
     {
         try {
-            descriptor = torch::jit::load(model_path);
+            descriptor = torch::jit::load(modelPath);
         }
         catch (const c10::Error& e) {
             ROS_ERROR("error loading the model\n: %s", e);	    
@@ -55,7 +60,7 @@ public:
         ROS_INFO("Success loading model");    
     }
 
-    void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int node_id)
+    at::Tensor makeDescriptor(const pcl::PointCloud<PointType>::Ptr laserCloudIn)
     {
         float verticalAngle, horizonAngle, range, prev_range, del_range;
         size_t rowIdn, columnIdn, index, cloudSize; 
@@ -183,19 +188,44 @@ public:
 
         std::vector<torch::jit::IValue> inputs;
         inputs.push_back(tensor_image);
-        std::cout<< "dimension "<<tensor_image.sizes()<<std::endl;
         at::Tensor output = descriptor.forward(inputs).toTensor();
         
-        std::cout << output << '\n';
+        return output;
+    }
 
-        // Result
+    void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId)
+    { 
+        auto output = makeDescriptor(laserCloudIn);
 
         PointType locnet_feature;
-        locnet_feature.x = output[0];
-        locnet_feature.y = output[1];
-        locnet_feature.z = output[2];
-        locnet_feature.intensity = node_id;
-        featureCloud->push_back(locnet_feature);
+        locnet_feature.x = output[0][0].item<float>();
+        locnet_feature.y = output[0][1].item<float>();
+        locnet_feature.z = output[0][2].item<float>();
+        locnet_feature.intensity = nodeId;
+
+        featureCloud->push_back(locnet_feature);    
+        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/feature_cloud.pcd", *featureCloud);
     }   
+    
+    ~LocNetManager() 
+    {
+        // Save Feature Cloud as .pcd file
+        
+    };
+    
+    //// Localization
+    void loadFeatureCloud(string featurePath)
+    {
+        if (pcl::io::loadPCDFile<PointType> (featurePath, *featureCloud) == -1) //* load the file
+        {
+            PCL_ERROR ("Couldn't read pcd \n");
+        }
+        std::cout<< "Loaded Feature Cloud"<<std::endl;        
+    }
+
+    void findCandidates(PointType inputFeature)
+    {
+
+    }
 
 };

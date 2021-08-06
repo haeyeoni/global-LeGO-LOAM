@@ -214,11 +214,18 @@ public:
         {
             PCL_ERROR ("Couldn't read pcd \n");
         }
-        std::cout<< "Loaded Feature Cloud"<<std::endl;        
+        std::cout<< "Loaded Feature Cloud"<<std::endl;      
+        kdtreeFeatures->setInputCloud(featureCloud);  
     }
 
-    void findCandidates(PointType inputFeature)
-    {
+    void findCandidates(PointType inputFeature, double radius, std::vector<int> &searchIdx, std::vector<float> &searchDist, std::vector<int> &nodeList)
+    {   
+        kdtreeFeatures->radiusSearch(inputFeature, radius, searchIdx, searchDist);
+        ROS_INFO("Found %d number of candidates", searchIdx.size());
+        for (size_t i = 0; i < searchIdx.size(); i ++)
+        {
+            nodeList.push_back(featureCloud->points[searchIdx[i]].intensity);
+        }
 
     }
 

@@ -46,13 +46,14 @@
 #include <gtsam/nonlinear/Values.h>
 
 #include <gtsam/nonlinear/ISAM2.h>
+#include <boost/serialization/access.hpp>
 
 using namespace gtsam;
 
 class mapOptimization{
 
 private:
-
+    std::vector<std::vector<float>> poseList;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -230,7 +231,10 @@ private:
     LocNetManager *locnetManager;
 
 public:  
-    
+    ~mapOptimization()
+    {
+        std::cout<<"class destructor"<<std::endl;
+    }
     mapOptimization():
         nh("~")
     {
@@ -958,7 +962,7 @@ public:
         gtSAMgraph.add(BetweenFactor<Pose3>(latestFrameIDLoopCloure, closestHistoryFrameID, poseFrom.between(poseTo), constraintNoise));
         isam->update(gtSAMgraph);
         isam->update();
-        // gtSAMgraph.resize(0);
+        gtSAMgraph.resize(0);
 
         aLoopIsClosed = true;
     }
@@ -1414,12 +1418,7 @@ public:
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
         
-        // gtSAMgraph.resize(0);
-        // save gtsam graph 
-        gtSAMgraph.print();
-        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
-        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
-
+        gtSAMgraph.resize(0);
         
         initialEstimate.clear();
 
@@ -1477,10 +1476,17 @@ public:
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
         outlierCloudKeyFrames.push_back(thisOutlierKeyFrame);
         
-        // haeyeon Descriptor LocNet
+
+        // ** Haeyeon **
+        
+        // Descriptor LocNet
         pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
         pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
         locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
+
+        // save keypoint pose
+        std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
+        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D);
     }
 
     void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg){
@@ -1579,7 +1585,6 @@ int main(int argc, char** argv)
 
         rate.sleep();
     }
-
     loopthread.join();
     visualizeMapThread.join();
 

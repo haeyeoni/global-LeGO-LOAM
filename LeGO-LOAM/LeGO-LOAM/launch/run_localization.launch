@@ -14,6 +14,7 @@
     <node pkg="lego_loam" type="globalLocalization"    name="globalLocalization"    output="screen">
         <param name="model_path" value="/home/haeyeon/Cocel/test_ws/src/global-LeGO-LOAM/train/locnet_descriptor510.pt"/>
         <param name="feature_cloud_path" value="/home/haeyeon/Cocel/feature_cloud.pcd"/>
+        <param name="search_radius" value="1000.0"/>
     </node>
 
 </launch>

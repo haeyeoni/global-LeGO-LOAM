@@ -958,7 +958,7 @@ public:
         gtSAMgraph.add(BetweenFactor<Pose3>(latestFrameIDLoopCloure, closestHistoryFrameID, poseFrom.between(poseTo), constraintNoise));
         isam->update(gtSAMgraph);
         isam->update();
-        gtSAMgraph.resize(0);
+        // gtSAMgraph.resize(0);
 
         aLoopIsClosed = true;
     }
@@ -1414,7 +1414,13 @@ public:
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
         
-        gtSAMgraph.resize(0);
+        // gtSAMgraph.resize(0);
+        // save gtsam graph 
+        gtSAMgraph.print();
+        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
+        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
+
+        
         initialEstimate.clear();
 
         /**
@@ -1549,9 +1555,6 @@ public:
             }
         }
 
-        // save gtsam graph 
-        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
-        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
     }
 };
 

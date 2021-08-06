@@ -58,9 +58,10 @@ public:
         std::cout<< "Loaded Map Cloud"<<std::endl; 
 
         // load graph
-        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
-        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));   
+        ifstream ifs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
+        ifs.read((char *)&gtSAMgraph, sizeof(gtSAMgraph));   
         std::cout<< "Loaded GTSAM Graph"<<std::endl; 
+        // gtSAMgraph.print();
     }
 
     void publishMap()

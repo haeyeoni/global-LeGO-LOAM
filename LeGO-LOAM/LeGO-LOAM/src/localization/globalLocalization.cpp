@@ -23,28 +23,47 @@ private:
     LocNetManager *locnetManager;
 
     ros::NodeHandle nh;
+    ros::Subscriber subLaserCloudRaw;
     ros::Publisher pubMapCloud;
 
     string modelPath;
     string featureCloudPath;
+    double featureDistBoundary;
     pcl::PointCloud<PointType>::Ptr globalMap;
+    pcl::PointCloud<PointType>::Ptr featureCloud;
 
     bool loaded_map = false;            
 
 public:
     globalLocalization():nh("~")
     {
-        // LOADING MODEL
-        locnetManager = new LocNetManager();    
-        globalMap.reset(new pcl::PointCloud<PointType>());
-        nh.param<std::string>("model_path", modelPath, "/home/haeyeon/model.pt"); 
-        nh.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
-        locnetManager->loadModel(modelPath);
-        locnetManager->loadFeatureCloud(featureCloudPath);
+
+        vector<BetweenFactor<Pose3>> betweenFactorList;
+        ifstream ifs;
+        ifs.open("/home/haeyeon/Cocel/between_factor.ros",  ios::binary);   
+        ifs.read((char *)&betweenFactorList, sizeof(betweenFactorList));   
+        // ROS_INFO("Loaded between factor sized %d", sizeof(betweenFactorList)); 
+
+        // vector<PriorFactor<Pose3>> priorFactorList;
+        // ifstream ifs2("/home/haeyeon/Cocel/prior_factor.ros", ios::binary);   
+        // ifs2.read((char *)&priorFactorList, sizeof(priorFactorList));   
+        // ROS_INFO("Loaded prior factor sized %d", sizeof(priorFactorList)); 
+
+        // nh.param<std::string>("model_path", modelPath, "/home/haeyeon/model.pt"); 
+        // nh.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
+        // nh.param<double>("feature_dist_boundary", featureDistBoundary, 1.0); 
         
-        loadMapAndGraph();
-        pubMapCloud = nh.advertise<sensor_msgs::PointCloud2>("/map_cloud", 2);
+        // // LOADING MODEL
+        // locnetManager = new LocNetManager();    
+        // globalMap.reset(new pcl::PointCloud<PointType>());
+        // locnetManager->loadModel(modelPath);
+        // locnetManager->loadFeatureCloud(featureCloudPath);
+
+        // loadMapAndGraph();
+        // subLaserCloudRaw = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &globalLocalization::laserCloudRawHandler, this);        
+        // pubMapCloud = nh.advertise<sensor_msgs::PointCloud2>("/map_cloud", 2);
     }
+
 
     void loadMapAndGraph()
     {
@@ -58,9 +77,21 @@ public:
         std::cout<< "Loaded Map Cloud"<<std::endl; 
 
         // load graph
-        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
-        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));   
-        std::cout<< "Loaded GTSAM Graph"<<std::endl; 
+        // ifstream ifs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
+        // ifs.read((char *)&gtSAMgraph, sizeof(gtSAMgraph));   
+        // ROS_INFO("Loaded GTSAM Graph sized %d", sizeof(gtSAMgraph)); 
+
+        vector<BetweenFactor<Pose3>> betweenFactorList;
+        ifstream ifs1("/home/haeyeon/Cocel/between_factor.ros", ios::binary);   
+        ifs1.read((char *)&betweenFactorList, sizeof(betweenFactorList));   
+        ROS_INFO("Loaded between factor sized %d", sizeof(betweenFactorList)); 
+
+        vector<PriorFactor<Pose3>> priorFactorList;
+        ifstream ifs2("/home/haeyeon/Cocel/prior_factor.ros", ios::binary);   
+        ifs2.read((char *)&priorFactorList, sizeof(priorFactorList));   
+        ROS_INFO("Loaded prior factor sized %d", sizeof(priorFactorList)); 
+
+
     }
 
     void publishMap()
@@ -73,6 +104,26 @@ public:
             mapCloudMsg.header.frame_id = "/camera_init";
             pubMapCloud.publish(mapCloudMsg);
         }        
+    }
+
+    void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg)
+    {
+        ROS_INFO_ONCE("called raw handler");
+        pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
+        pcl::fromROSMsg(*msg, *laserCloudRaw);
+        auto descriptor = locnetManager->makeDescriptor(laserCloudRaw);
+        
+        std::vector<int> knnIdx;
+        std::vector<float> knnDist;
+        std::vector<int> nodeIdList;
+
+        locnetManager->findCandidates(descriptor, featureDistBoundary, knnIdx, knnDist, nodeIdList);
+        // get node from gtsam graph
+        for (std::size_t i = 0; i < knnIdx.size(); i ++)
+        {
+            std::cout<<"node at" << nodeIdList[i]<<" "<< std::endl;
+            
+        }
     }
 
 };

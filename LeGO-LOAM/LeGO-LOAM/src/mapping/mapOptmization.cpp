@@ -48,10 +48,12 @@
 #include <gtsam/nonlinear/ISAM2.h>
 
 using namespace gtsam;
+using namespace std;
 
 class mapOptimization{
 
 private:
+    vector<BetweenFactor<Pose3>> betweenFactorList;
 
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
@@ -956,9 +958,10 @@ public:
         	*/
         std::lock_guard<std::mutex> lock(mtx);
         gtSAMgraph.add(BetweenFactor<Pose3>(latestFrameIDLoopCloure, closestHistoryFrameID, poseFrom.between(poseTo), constraintNoise));
+        betweenFactorList.push_back(BetweenFactor<Pose3>(latestFrameIDLoopCloure, closestHistoryFrameID, poseFrom.between(poseTo), constraintNoise));
         isam->update(gtSAMgraph);
         isam->update();
-        gtSAMgraph.resize(0);
+        // gtSAMgraph.resize(0);
 
         aLoopIsClosed = true;
     }
@@ -1405,16 +1408,24 @@ public:
             gtsam::Pose3 poseTo   = Pose3(Rot3::RzRyRx(transformAftMapped[2], transformAftMapped[0], transformAftMapped[1]),
                                                 Point3(transformAftMapped[5], transformAftMapped[3], transformAftMapped[4]));
             gtSAMgraph.add(BetweenFactor<Pose3>(cloudKeyPoses3D->points.size()-1, cloudKeyPoses3D->points.size(), poseFrom.between(poseTo), odometryNoise));
+            
+            betweenFactorList.push_back(BetweenFactor<Pose3>(cloudKeyPoses3D->points.size()-1, cloudKeyPoses3D->points.size(), poseFrom.between(poseTo), odometryNoise));
             initialEstimate.insert(cloudKeyPoses3D->points.size(), Pose3(Rot3::RzRyRx(transformAftMapped[2], transformAftMapped[0], transformAftMapped[1]),
                                                                      		   Point3(transformAftMapped[5], transformAftMapped[3], transformAftMapped[4])));
         }
+
+        ofstream ofs("/home/haeyeon/Cocel/between_factor.ros", std::ofstream::binary);   
+        ofs.write((char *)&betweenFactorList, sizeof(betweenFactorList));
+        
         /**
          * update iSAM
          */
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
         
-        gtSAMgraph.resize(0);
+
+        
+        // gtSAMgraph.resize(0);
         initialEstimate.clear();
 
         /**
@@ -1504,6 +1515,8 @@ public:
 
             aLoopIsClosed = false;
         }
+
+
     }
 
     void clearCloud(){
@@ -1550,8 +1563,16 @@ public:
         }
 
         // save gtsam graph 
-        ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
-        ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
+        // ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", std::ofstream::binary);   
+        // gtSAMgraph.saveGraph(ofs);
+        // ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
+        // ofs.close();
+        // gtSAMgraph.print();
+        // // auto node = gtSAMgraph.at(0);
+        // ROS_INFO("saved %d szied graph", sizeof(gtSAMgraph));
+
+        
+        
     }
 };
 

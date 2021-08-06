@@ -25,6 +25,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 #include <torch/torch.h>
 #include <torch/script.h> 
@@ -207,6 +208,7 @@ public:
         pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/feature_cloud.pcd", *featureCloud);
     }   
     
+
     //// Localization
     void loadFeatureCloud(string featurePath)
     {
@@ -214,12 +216,24 @@ public:
         {
             PCL_ERROR ("Couldn't read pcd \n");
         }
-        std::cout<< "Loaded Feature Cloud"<<std::endl;        
+        std::cout<< "Loaded Feature Cloud"<<std::endl;      
+        kdtreeFeatures->setInputCloud(featureCloud);  
     }
 
-    void findCandidates(PointType inputFeature)
-    {
 
+    void findCandidates(at::Tensor inputDescriptor, double distBoundary, std::vector<int> &knnIdx, std::vector<float> &knnDist, std::vector<int> &nodeIdList)
+    {
+        PointType locnetFeature;
+        nodeIdList.clear();
+        locnetFeature.x = inputDescriptor[0][0].item<float>();
+        locnetFeature.y = inputDescriptor[0][1].item<float>();
+        locnetFeature.z = inputDescriptor[0][2].item<float>();
+
+        kdtreeFeatures->radiusSearch(locnetFeature, distBoundary, knnIdx, knnDist);
+        for (std::size_t i = 0; i < knnIdx.size(); i ++)
+        {
+            nodeIdList.push_back(featureCloud->points[knnIdx[i]].intensity);
+        }
     }
 
 };

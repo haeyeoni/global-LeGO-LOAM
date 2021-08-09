@@ -1,4 +1,6 @@
 #pragma once
+#ifndef DESCRIPTOR_H
+#define DESCRIPTOR_H
 
 #include <ctime>
 #include <cassert>
@@ -9,6 +11,7 @@
 #include <cstdlib>
 #include <memory>
 #include <iostream>
+#include <string>
 
 #include <Eigen/Dense>
 
@@ -25,6 +28,9 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
+
 
 #include <torch/torch.h>
 #include <torch/script.h> 
@@ -230,3 +236,5 @@ public:
     }
 
 };
+
+#endif

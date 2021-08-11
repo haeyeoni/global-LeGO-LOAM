@@ -35,16 +35,13 @@ public:
     {
         float acc_pi = 0.0;
 
-        std::cout<<"    number of distribution: "<<num_dist << std::endl;
         for (size_t i = 0; i < num_dist; i ++)
         {
             T mean_pose(Vec3(mean_poses[3*i + 0], mean_poses[3*i + 1], 0.0), Vec3(0.0, 0.0, 0.0));
-            std::cout<<"    particle pose: "<<mean_pose[0]<<" "<< mean_pose[1]<< std::endl;
             mean_poses_.push_back(mean_pose);
             pis_.push_back(mean_poses[3*i + 2] / similarity_sum);
             acc_pi += mean_poses[3*i + 2] / similarity_sum;
             cumulative_pi_.push_back(acc_pi);
-            std::cout<<"    accumulated pi: "<<acc_pi<< std::endl;
         }
     }
 
@@ -55,12 +52,10 @@ public:
         auto it = std::lower_bound(cumulative_pi_.begin(), cumulative_pi_.end(), random_value); // return first larger than random_value in cumulative_weight
         
         const size_t n = it - cumulative_pi_.begin();
-        std::cout<<"    Selected ND: "<< n << std::endl;
         std::normal_distribution<> x_distribution {mean_poses_[n][0], sigma_}; 
         std::normal_distribution<> y_distribution {mean_poses_[n][1], sigma_};
         
         T sample_pose (Vec3(x_distribution(*engine_), y_distribution(*engine_), 0.0), (Vec3(0.0 ,0.0 , (ud(*engine_)-0.5)*M_PI*2)));
-        std::cout<<"sampled particle pose: "<<sample_pose[0]<<sample_pose[1]<< std::endl;
         return sample_pose;
     }
 

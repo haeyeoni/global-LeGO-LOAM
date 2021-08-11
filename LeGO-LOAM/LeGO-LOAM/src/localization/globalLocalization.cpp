@@ -81,28 +81,29 @@ public:
             locnetFeature.y = output[0][1].item<float>();
             locnetFeature.z = output[0][2].item<float>();
             locnetManager->findCandidates(locnetFeature, searchRadius, searchIdx, searchDist, nodeList);
-
-            float similaritySum = 0;
-
-            std::vector<float> poseData(3*10, 0); // maximum 10 candidates
-            for (size_t i = 0; i < nodeList.size(); i++)
+            if (nodeList.size() > 0)
             {
-                std::cout<<"nodes: "<<nodeList[i]<<std::endl;
-                std::cout<<"points: "<<cloudKeyPoses3D->points[nodeList[i]].x<<" "<<cloudKeyPoses3D->points[nodeList[i]].y<<std::endl;
-                poseData[3*i + 0] = cloudKeyPoses3D->points[nodeList[i]].x;
-                poseData[3*i + 1] = cloudKeyPoses3D->points[nodeList[i]].y;
-                poseData[3*i + 2] = searchDist[i];
-                similaritySum += searchDist[i];
-            }
+                float similaritySum = 0;
 
-            initialPoseMsg.data = poseData; // data: x pose, y pose, similarity term
-            initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
-            initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
-            initialPoseMsg.layout.dim[0].label = "similarity_sum";
-            initialPoseMsg.layout.dim[0].size = similaritySum;
-            initialPoseMsg.layout.dim[1].label = "length";
-            initialPoseMsg.layout.dim[1].size = nodeList.size();
-            pubInitialize.publish(initialPoseMsg); 
+                std::vector<float> poseData(3*10, 0); // maximum 10 candidates
+                for (size_t i = 0; i < nodeList.size(); i++)
+                {
+                    poseData[3*i + 0] = cloudKeyPoses3D->points[nodeList[i]].x;
+                    poseData[3*i + 1] = cloudKeyPoses3D->points[nodeList[i]].y;
+                    poseData[3*i + 2] = searchDist[i];
+                    similaritySum += searchDist[i];
+                }
+
+                initialPoseMsg.data = poseData; // data: x pose, y pose, similarity term
+                initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+                initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+                initialPoseMsg.layout.dim[0].label = "similarity_sum";
+                initialPoseMsg.layout.dim[0].size = similaritySum;
+                initialPoseMsg.layout.dim[1].label = "length";
+                initialPoseMsg.layout.dim[1].size = nodeList.size();
+                pubInitialize.publish(initialPoseMsg); 
+                initialized = true;
+            }
         }
     }
 

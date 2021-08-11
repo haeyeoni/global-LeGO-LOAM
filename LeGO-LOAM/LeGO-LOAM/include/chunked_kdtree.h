@@ -96,6 +96,7 @@ public:
     , keep_clouds_(keep_clouds)
   {
     chunks_.clear();
+    std::cout<< "reset tree models"<<std::endl;
   }
   void setEpsilon(const float epsilon)
   {

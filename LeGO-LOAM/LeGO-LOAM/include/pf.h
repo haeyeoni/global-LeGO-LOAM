@@ -1,3 +1,4 @@
+#pragma once
 #ifndef PF_H
 #define PH_H
 

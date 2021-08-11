@@ -10,12 +10,18 @@ public:
 
     PoseState()
     {
+        noise_ll_ = noise_la_ = noise_aa_ = noise_al_ = 0.0;
+        odom_lin_err_ = Vec3(0.0, 0.0, 0.0);
+        odom_ang_err_ = Vec3(0.0, 0.0, 0.0);
         diff_ = false;
     }
     PoseState(const Vec3 pose, const Quat rot)
     {
         pose_ = pose;
         rot_ = rot;
+        noise_ll_ = noise_la_ = noise_aa_ = noise_al_ = 0.0;
+        odom_lin_err_ = Vec3(0.0, 0.0, 0.0);
+        odom_ang_err_ = Vec3(0.0, 0.0, 0.0);
         diff_ = false;
     }
 
@@ -24,12 +30,15 @@ public:
         pose_ = pos;
         // rpy_ = RPYVec(rpy);
         rot_ = Quat(rpy);
+        noise_ll_ = noise_la_ = noise_aa_ = noise_al_ = 0.0;
+        odom_lin_err_ = Vec3(0.0, 0.0, 0.0);
+        odom_ang_err_ = Vec3(0.0, 0.0, 0.0);
         diff_ = true;
     }
 
     int size() const
     {
-        return 7;
+        return 13;
     }
 
     template <typename PointType> 
@@ -61,6 +70,12 @@ public:
             case 4: return rot_.y_;
             case 5: return rot_.z_;
             case 6: return rot_.w_;
+            case 7: return odom_lin_err_.x_;
+            case 8: return odom_lin_err_.y_;
+            case 9: return odom_lin_err_.z_;
+            case 10: return odom_ang_err_.x_;
+            case 11: return odom_ang_err_.y_;
+            case 12: return odom_ang_err_.z_;
             default:
                 assert(false);
         }
@@ -78,6 +93,12 @@ public:
             case 4: return rot_.y_;
             case 5: return rot_.z_;
             case 6: return rot_.w_;
+            case 7: return odom_lin_err_.x_;
+            case 8: return odom_lin_err_.y_;
+            case 9: return odom_lin_err_.z_;
+            case 10: return odom_ang_err_.x_;
+            case 11: return odom_ang_err_.y_;
+            case 12: return odom_ang_err_.z_;
             default:
                 assert(false);
         }
@@ -134,7 +155,13 @@ public:
 
     Vec3 pose_;
     Quat rot_;
-
+    
+    float noise_ll_; // Standard deviation of the translational error per unit of the translational component of the robot's motion.
+    float noise_la_; // Standard deviation of the rotational error per unit of the translational component of the robot's motion.
+    float noise_al_; // Standard deviation of the translational error per unit of the rotational component of the robot's motion.
+    float noise_aa_; // Standard deviation of the rotational error per unit of the rotational component of the robot's motion.
+    Vec3 odom_lin_err_;
+    Vec3 odom_ang_err_;
  
     bool diff_; // has quaternion rpy vec? 
 };

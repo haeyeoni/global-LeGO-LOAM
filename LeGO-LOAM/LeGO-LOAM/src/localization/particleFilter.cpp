@@ -35,11 +35,16 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/filters/voxel_grid.h>
 
 #include <pf.h>
 #include <state/state_rep.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/MultiArrayDimension.h>
+#include <chunked_kdtree.h>
+#include <model/odom_model.h>
+// #include <model/lidar_model.h>
+
 
 using PointType = pcl::PointXYZI; // with intensity
 using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
@@ -51,52 +56,193 @@ private:
     ros::NodeHandle nh;
     ros::Subscriber subPointCloud;
     ros::Subscriber subInitialize;
+    ros::Subscriber subLaserOdometry;
+
     ros::Publisher pubMapCloud;
     ros::Publisher pubParticles;
     ros::Publisher pubPose;
+    ros::Publisher pubTransformedOdometry; // test;
     
     
-    pcl::PointCloud<PointType>::Ptr globalMap;
+    pcl::PointCloud<PointType>::Ptr global_map_;
 
     bool loaded_map = false;  
     bool initialized = false;
-    int num_particles;
-    double sampling_covariance;
-    ParticleFilter<PoseState>::Ptr pf_;
+    bool has_odom_;
+    OdomModel::Ptr odom_model_;
+    // LidarModel::Ptr lidar_model_;
 
+    ParticleFilter<PoseState>::Ptr pf_;    
+    ChunkedKdtree<PointType>::Ptr map_kdtree_;
+    
+    // State represents
+    PoseState odom_; // current odometry
+    PoseState odom_prev_;
+    PoseState state_prev_;
+
+    // Time
+    ros::Time odom_last_time_;
+
+    // transform
+    Eigen::Affine3f tf_to_cam_ = Eigen::Affine3f::Identity();
+
+    // parameter
+    int num_particles_;
+    double sampling_covariance_;
+    double map_grid_min_, map_grid_max_;
+    double map_chunk_;
+    double max_search_radius_;
+    double map_downsample_x_, map_downsample_y_, map_downsample_z_;
 
 public:
     particleFilter3D():nh("~")
     {   // parameter
-        nh.param<int>("num_particles", num_particles, 100); 
-        nh.param<double>("sampling_covariance", sampling_covariance, 0.1); 
-        
+        nh.param("num_particles", num_particles_, 100); 
+        nh.param("sampling_covariance", sampling_covariance_, 0.1); 
+        nh.param("map_chunk", map_chunk_, 20.0); 
+        nh.param("max_search_radius", max_search_radius_, 0.2); 
+                
+        nh.param("map_downsample_x", map_downsample_x_, 0.1);
+        nh.param("map_downsample_y", map_downsample_y_, 0.1);
+        nh.param("map_downsample_z", map_downsample_z_, 0.1);
+        map_grid_min_ = std::min(std::min(map_downsample_x_, map_downsample_y_), map_downsample_z_);
+        map_grid_max_ = std::max(std::max(map_downsample_x_, map_downsample_y_), map_downsample_z_);
+
         // load saved map
-        globalMap.reset(new pcl::PointCloud<PointType>());
-        if (pcl::io::loadPCDFile<PointType> ("/home/haeyeon/Cocel/lego_loam_map.pcd", *globalMap) == -1) //* load the file
+        global_map_.reset(new pcl::PointCloud<PointType>());
+        if (pcl::io::loadPCDFile<PointType> ("/home/haeyeon/Cocel/lego_loam_map.pcd", *global_map_) == -1) //* load the file
         {
             PCL_ERROR ("Couldn't read pcd \n");
             return;
         }
         loaded_map = true;
-        std::cout<< "Loaded Map Cloud"<<std::endl; 
         
-        // reset pf
+        // reset particle filter and model 
+        pf_.reset(new ParticleFilter<PoseState>(num_particles_, sampling_covariance_)); 
+        odom_model_.reset(new OdomModel(0.0, 0.0, 0.0, 0.0));
+        // lidar_model_.reset(new LidarModel());
+        map_kdtree_.reset(new ChunkedKdtree<PointType>(map_chunk_, max_search_radius_, map_grid_min_ /16));        
 
-        pf_.reset(new ParticleFilter<PoseState>(num_particles, sampling_covariance)); 
-        
+
+        // ros subscriber & publisher
         subInitialize = nh.subscribe("/initialize_data", 10, &particleFilter3D::handleInitializeData, this);
-        subPointCloud = nh.subscribe("velodyne_points", 10, &particleFilter3D::handlePointCloud, this);
-        
+        subPointCloud = nh.subscribe("/velodyne_points", 10, &particleFilter3D::handlePointCloud, this);
+        subLaserOdometry = nh.subscribe("/laser_odom_to_init", 10, &particleFilter3D::handleLaserOdometry, this);
+
         pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 5, true);
         pubParticles = nh.advertise<geometry_msgs::PoseArray>("/particles", 1, true);
         pubMapCloud = nh.advertise<sensor_msgs::PointCloud2>("/map_cloud", 2);
-        
+        pubTransformedOdometry = nh.advertise<nav_msgs::Odometry> ("/tranformed_odom", 5);
     }
-    void handlePointCloud(const sensor_msgs::PointCloud2::Ptr& pcl_msg)
-    {
 
+    void handleMapCloud()
+    {
+        ROS_INFO_ONCE("Map loaded");
+
+        // Downsampling the pointcloud map
+        pcl::VoxelGrid<PointType> ds;
+        ds.setInputCloud(global_map_);
+        ds.setLeafSize(map_downsample_x_, map_downsample_y_, map_downsample_z_);
+        ds.filter(*global_map_);
+
+        // transform map to map frames (camera_init -> map)
+        pcl::PointCloud<PointType>::Ptr map_transformed(new pcl::PointCloud<PointType>());
+        tf::TransformListener tf_listener;
+        tf::StampedTransform transform;
+        if (!tf_listener.waitForTransform("/map", "/camera_init", ros::Time(0), ros::Duration(0.5), ros::Duration(0.01))) 
+        {
+            ROS_ERROR("Unable to get pose from TF");
+            return;
+        }
+        try 
+        {
+            tf_listener.lookupTransform("/map", "/camera_init", ros::Time(0), transform);
+            // angle
+			tf2::Quaternion orientation (transform.getRotation().x(), transform.getRotation().y(), transform.getRotation().z(), transform.getRotation().w());
+			tf2::Matrix3x3 m(orientation);
+			double roll, pitch, yaw;
+			m.getRPY(roll, pitch, yaw);
+            tf_to_cam_.translation() << transform.getOrigin().x(), transform.getOrigin().y(), transform.getOrigin().z();
+            tf_to_cam_.rotate(Eigen::AngleAxis<float>(roll, Eigen::Vector3f::UnitX()));
+            tf_to_cam_.rotate(Eigen::AngleAxis<float>(pitch, Eigen::Vector3f::UnitY()));
+            tf_to_cam_.rotate(Eigen::AngleAxis<float>(yaw, Eigen::Vector3f::UnitZ()));
+            pcl::transformPointCloud (*global_map_, *map_transformed, tf_to_cam_);
+            map_kdtree_->setInputCloud(map_transformed);
+        }
+        catch (const tf::TransformException &e) {
+            ROS_ERROR("%s",e.what());
+        } 			
+        // lidar_model_->setKdtree(map_kdtree_);
+
+        // publish map
+        sensor_msgs::PointCloud2 map_cloud_msg;
+        pcl::toROSMsg(*global_map_, map_cloud_msg);
+        map_cloud_msg.header.stamp = ros::Time::now();
+        map_cloud_msg.header.frame_id = "/camera_init";
+        pubMapCloud.publish(map_cloud_msg);
     }
+
+    void handleLaserOdometry(const nav_msgs::Odometry::ConstPtr& odom_msg)
+    {
+        ROS_INFO_ONCE("odom received");
+
+        // transform laser odometry direction
+        nav_msgs::Odometry transformed_odom;
+
+        
+        Quat trans1(Vec3(0,1,0), -M_PI/2);
+        
+        Quat odom_ori(odom_msg->pose.pose.orientation.x, odom_msg->pose.pose.orientation.y,
+                     odom_msg->pose.pose.orientation.z, odom_msg->pose.pose.orientation.w);
+        
+        Quat trans_ori = odom_ori * trans1;
+        
+        transformed_odom.header = odom_msg->header;
+        transformed_odom.pose.pose.position.x = odom_msg->pose.pose.position.x;
+        transformed_odom.pose.pose.position.y = odom_msg->pose.pose.position.y;
+        transformed_odom.pose.pose.position.z = odom_msg->pose.pose.position.z;
+        transformed_odom.pose.pose.orientation.x = trans_ori[0]; //odom_msg->pose.pose.orientation.x;
+        transformed_odom.pose.pose.orientation.y = trans_ori[1]; //odom_msg->pose.pose.orientation.y;
+        transformed_odom.pose.pose.orientation.z = trans_ori[2]; //odom_msg->pose.pose.orientation.z;
+        transformed_odom.pose.pose.orientation.w = trans_ori[3]; //odom_msg->pose.pose.orientation.w;
+
+        pubTransformedOdometry.publish(transformed_odom);
+
+        // z, x, y
+        // odom_ =  PoseState(Vec3(-odom_msg->o.pose.position.x, 
+        //                     odom_msg->pose.pose.position.y,
+        //                     odom_msg->pose.pose.position.z),
+        //                 (Quat(-odom_msg->pose.pose.orientation.x,
+        //                     odom_msg->pose.pose.orientation.x,
+        //                     odom_msg->pose.pose.orientation.y,
+        //                     odom_msg->pose.pose.orientation.w)));
+
+        // if (!has_odom_) // if this is initial odom
+        // {
+        //     odom_prev_ = odom_;
+        //     odom_last_time_ = odom_msg->header.stamp;
+        //     has_odom_ = true;
+        //     return;
+        // }
+        // const float dt = (odom_msg->header.stamp - odom_last_time_).toSec();    
+        // if (dt < 0.0 || dt > 5.0)
+        // {
+        //     ROS_WARN("Detected time jump in odometry. %f", dt);
+        //     has_odom_ = false;
+        //     return;
+        // }
+        // else if (dt > 0.05)
+        // {
+        //     odom_model_->setOdoms(odom_prev_, odom_, dt);
+        //     odom_model_->motionPredict(pf_);
+        //     odom_last_time_ = odom_msg->header.stamp;
+        //     odom_prev_ = odom_;
+        // }  
+    }
+
+
+    void handlePointCloud(const sensor_msgs::PointCloud2::ConstPtr& odom_msg)
+    {}
 
     void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
     {
@@ -111,17 +257,6 @@ public:
         }
     }
 
-    void publishMap()
-    {
-        if (loaded_map)
-        {
-            sensor_msgs::PointCloud2 mapCloudMsg;
-            pcl::toROSMsg(*globalMap, mapCloudMsg);
-            mapCloudMsg.header.stamp = ros::Time::now();
-            mapCloudMsg.header.frame_id = "/camera_init";
-            pubMapCloud.publish(mapCloudMsg);
-        }        
-    }
 
     void publishParticles()
     {
@@ -164,7 +299,7 @@ int main(int argc, char** argv)
     while (ros::ok())
     {
         ros::spinOnce();
-        PF.publishMap();
+        PF.handleMapCloud();
         PF.publishParticles();
     }
 

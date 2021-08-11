@@ -114,6 +114,15 @@ class Quat
         w_ *= s;
         return *this;
     }
+    inline float operator[](const int& i)
+    {
+        if (i == 0) { return x_; }
+        else if (i == 1) { return y_; }
+        else if (i == 2) { return z_; }
+        else if (i == 3) { return w_; }
+        else{ return 100000;}
+        
+    }
     inline Quat operator/=(const float& s)
     {
         x_ /= s;

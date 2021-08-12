@@ -186,58 +186,40 @@ public:
     {
         ROS_INFO_ONCE("odom received");
 
-        // transform laser odometry direction
-        nav_msgs::Odometry transformed_odom;
-
-        
         Quat trans1(Vec3(0,1,0), -M_PI/2);
+        Quat trans2(Vec3(1,0,0), -M_PI/2);
         
         Quat odom_ori(odom_msg->pose.pose.orientation.x, odom_msg->pose.pose.orientation.y,
                      odom_msg->pose.pose.orientation.z, odom_msg->pose.pose.orientation.w);
         
-        Quat trans_ori = odom_ori * trans1;
-        
-        transformed_odom.header = odom_msg->header;
-        transformed_odom.pose.pose.position.x = odom_msg->pose.pose.position.x;
-        transformed_odom.pose.pose.position.y = odom_msg->pose.pose.position.y;
-        transformed_odom.pose.pose.position.z = odom_msg->pose.pose.position.z;
-        transformed_odom.pose.pose.orientation.x = trans_ori[0]; //odom_msg->pose.pose.orientation.x;
-        transformed_odom.pose.pose.orientation.y = trans_ori[1]; //odom_msg->pose.pose.orientation.y;
-        transformed_odom.pose.pose.orientation.z = trans_ori[2]; //odom_msg->pose.pose.orientation.z;
-        transformed_odom.pose.pose.orientation.w = trans_ori[3]; //odom_msg->pose.pose.orientation.w;
+        Quat trans_ori = odom_ori * trans1 * trans2;
 
-        pubTransformedOdometry.publish(transformed_odom);
+        odom_ =  PoseState(Vec3(-odom_msg->pose.pose.position.x, 
+                            odom_msg->pose.pose.position.y,
+                            odom_msg->pose.pose.position.z),
+                        (Quat(trans_ori[0], trans_ori[1], trans_ori[2], trans_ori[3])));
 
-        // z, x, y
-        // odom_ =  PoseState(Vec3(-odom_msg->o.pose.position.x, 
-        //                     odom_msg->pose.pose.position.y,
-        //                     odom_msg->pose.pose.position.z),
-        //                 (Quat(-odom_msg->pose.pose.orientation.x,
-        //                     odom_msg->pose.pose.orientation.x,
-        //                     odom_msg->pose.pose.orientation.y,
-        //                     odom_msg->pose.pose.orientation.w)));
-
-        // if (!has_odom_) // if this is initial odom
-        // {
-        //     odom_prev_ = odom_;
-        //     odom_last_time_ = odom_msg->header.stamp;
-        //     has_odom_ = true;
-        //     return;
-        // }
-        // const float dt = (odom_msg->header.stamp - odom_last_time_).toSec();    
-        // if (dt < 0.0 || dt > 5.0)
-        // {
-        //     ROS_WARN("Detected time jump in odometry. %f", dt);
-        //     has_odom_ = false;
-        //     return;
-        // }
-        // else if (dt > 0.05)
-        // {
-        //     odom_model_->setOdoms(odom_prev_, odom_, dt);
-        //     odom_model_->motionPredict(pf_);
-        //     odom_last_time_ = odom_msg->header.stamp;
-        //     odom_prev_ = odom_;
-        // }  
+        if (!has_odom_) // if this is initial odom
+        {
+            odom_prev_ = odom_;
+            odom_last_time_ = odom_msg->header.stamp;
+            has_odom_ = true;
+            return;
+        }
+        const float dt = (odom_msg->header.stamp - odom_last_time_).toSec();    
+        if (dt < 0.0 || dt > 5.0)
+        {
+            ROS_WARN("Detected time jump in odometry. %f", dt);
+            has_odom_ = false;
+            return;
+        }
+        else if (dt > 0.05)
+        {
+            odom_model_->setOdoms(odom_prev_, odom_, dt);
+            odom_model_->motionPredict(pf_);
+            odom_last_time_ = odom_msg->header.stamp;
+            odom_prev_ = odom_;
+        }  
     }
 
 

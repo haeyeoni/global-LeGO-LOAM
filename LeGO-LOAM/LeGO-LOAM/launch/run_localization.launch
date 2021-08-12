@@ -23,7 +23,7 @@
 
     <!--- Particle filter -->
     <node pkg="lego_loam" type="particleFilter"    name="particleFilter"    output="screen">
-        <param name="num_particles" value="10"/>
+        <param name="num_particles" value="1"/>
         <param name="sampling_covariance" value="0.1"/>
     </node>
 

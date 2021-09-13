@@ -17,19 +17,20 @@ private:
     double **mean;
     double sigma_;
 
+    std::random_device seed_gen_;
+    std::shared_ptr<std::default_random_engine> engine_;
+    std::uniform_real_distribution<> ud{0.0, 1.0};     
+
 protected:
     std::vector<float> pis_;
     std::vector<float> cumulative_pi_;
     std::vector<T> mean_poses_;
-    
-    std::shared_ptr<std::default_random_engine> engine_;
-    std::random_device seed_gen_;
-    std::uniform_real_distribution<> ud{0.0, 1.0};     
 
 public:
 
     using Ptr = std::shared_ptr<GaussianMixture>;
-    GaussianMixture(float sampling_covariance): engine_(new std::default_random_engine(seed_gen_())), sigma_(sampling_covariance) {}
+    GaussianMixture(float sampling_covariance):sigma_(sampling_covariance), engine_(new std::default_random_engine(seed_gen_()))
+    {}
 
     void setDistribution(int num_dist, float similarity_sum, std::vector<float> mean_poses)
     {

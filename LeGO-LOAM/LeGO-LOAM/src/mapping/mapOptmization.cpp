@@ -68,7 +68,8 @@ private:
 
     //haeyeon
     string model_path;
-    
+    bool save_map;
+
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMapped;
     ros::Publisher pubKeyPoses;
@@ -241,6 +242,7 @@ public:
         // LOADING MODEL
         locnetManager = new LocNetManager();
         nh.param<std::string>("model_path", model_path, "/home/haeyeon/model.pt"); 
+        nh.param<bool>("save_map", save_map, "true"); 
         
         locnetManager->loadModel(model_path);
 
@@ -737,7 +739,13 @@ public:
             pcl::toROSMsg(*cloudOut, cloudMsgTemp);
             cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
             cloudMsgTemp.header.frame_id = "/camera_init";
-            pubRegisteredCloud.publish(cloudMsgTemp);            
+            pubRegisteredCloud.publish(cloudMsgTemp);     
+            if(save_map)
+            {
+                std::cout<<" Saving Map ... " <<cloudOut->points.size() << std::endl;
+                pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/lego_loam_map.pcd", *cloudOut);
+            }
+               
         } 
     }
 
@@ -808,8 +816,6 @@ public:
 	    // downsample visualized points
         downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
         downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
-        std::cout<<" Saving Map ... " <<std::endl;
-        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/lego_loam_map.pcd", *globalMapKeyFramesDS);
         sensor_msgs::PointCloud2 cloudMsgTemp;
         pcl::toROSMsg(*globalMapKeyFramesDS, cloudMsgTemp);
         cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
@@ -1485,8 +1491,12 @@ public:
         locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
 
         // save keypoint pose
-        std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
-        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D);
+        if (save_map)
+        {
+            std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
+            pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D);
+        }
+        
     }
 
     void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg){

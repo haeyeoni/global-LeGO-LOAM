@@ -3,9 +3,9 @@
 
 #include <state/state_rep.h>
 #include <chunked_kdtree.h>
-// #include <pointcloud_sampler.h>
+#include <pointcloud_sampler.h>
 #include <pcl/filters/extract_indices.h>
-// #include <normal_likelihood.h>
+#include <normal_likelihood.h>
 
 typedef struct
 {
@@ -18,7 +18,23 @@ class LidarModel
 public:
     using PointType = pcl::PointXYZ;
     using Ptr = std::shared_ptr<LidarModel>;
+    PointCloudSampler<PointType>::Ptr sampler_;
 
+private:
+    size_t num_points_;
+    size_t num_points_default_;
+    size_t num_points_global_;
+    float clip_far_sq_; // maximum square distance 
+    float clip_near_sq_; // minimum square distance
+    float clip_z_min_;
+    float clip_z_max_;
+    float match_weight_;
+    float max_search_radius_; 
+    float min_search_radius_; 
+    ChunkedKdtree<PointType>::Ptr kdtree_;
+    const float odom_lin_err_sigma_;
+
+public:
     LidarModel(int num_points, int num_points_global, double max_search_radius, double min_search_radius, 
                double clip_near_sq, double clip_far_sq, double clip_z_min, double clip_z_max,
                double perform_weighting_ratio, double max_weight_ratio, 
@@ -31,8 +47,9 @@ public:
       odom_lin_err_sigma_(odom_lin_err_sigma)
     {
         num_points_default_ = num_points_ = num_points;
-        sampler_ = std::make_shared<PointCloudSampler<PointType>>(perform_weighting_ratio, max_weight_ratio, max_weight, normal_search_range);
+        sampler_.reset(new PointCloudSampler<PointType>(perform_weighting_ratio, max_weight_ratio, max_weight, normal_search_range));   
         match_weight_ = 5.0; 
+        std::cout<< "reset lidar models"<<std::endl;
     }
 
     void setParticleNumber(const size_t num_particles, const size_t current_num_particles)
@@ -48,11 +65,11 @@ public:
         num_points_ = num;    
     }
 
-    void setKdtree(ChunkedKdtree<PointType>::Ptr kdtree)
+    void setKdtree(ChunkedKdtree<PointType>::Ptr& kdtree)
     {
         kdtree_ = kdtree;
     }
-    pcl::PointCloud<PointType>::Ptr filter(const pcl::PointCloud<PointType>::ConstPtr& pc) const
+    pcl::PointCloud<PointType>::Ptr filter(const pcl::PointCloud<PointType>::Ptr& pc) const
     {
         ROS_DEBUG("lidar filter called");
         pcl::PointCloud<PointType>::Ptr pc_filtered(new pcl::PointCloud<PointType>);
@@ -79,7 +96,7 @@ public:
         return sampler_->normal_sample(pc_filtered, num_points_); // sample num_points number of points from pc_filtered     
     }
 
-    std::shared_ptr<PointCloudSampler<PointType>> getSampler()
+    PointCloudSampler<PointType>::Ptr getSampler()
     {   
         return sampler_;
     }
@@ -113,12 +130,9 @@ public:
                 
                 size_t num = 0;
                 if(pc_particle->is_dense)
-                {
-                    ROS_INFO("Passed");
-                
+                {                
                     for (const PointType& point : pc_particle->points) // for all point cloud points
                     {
-                        ROS_INFO("33");
                         if (kdtree_->radiusSearch(point, max_search_radius_, id, sqr_distance, 1)) // find nearest neighbor within (search_radius_) radius from map and if neighbor exists 
                         {
                             const float dist = max_search_radius_ - std::max(std::sqrt(sqr_distance[0]), min_search_radius_); // if the distance is smaller, likelihood is higher 
@@ -146,24 +160,6 @@ public:
         return match_ratio_max;
     }
 
-
-private:
-    size_t num_points_;
-    size_t num_points_default_;
-    size_t num_points_global_;
-    float clip_far_sq_; // maximum square distance 
-    float clip_near_sq_; // minimum square distance
-    float clip_z_min_;
-    float clip_z_max_;
-    float match_weight_;
-    float max_search_radius_; 
-    float min_search_radius_; 
-    ChunkedKdtree<PointType>::Ptr kdtree_;
-
-    const float odom_lin_err_sigma_;
-    
-protected:
-    std::shared_ptr<PointCloudSampler<PointType>> sampler_;
 };
 
 

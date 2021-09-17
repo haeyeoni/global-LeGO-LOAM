@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(lego_loam)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3")
 
 find_package(catkin REQUIRED COMPONENTS
   tf
@@ -13,6 +13,11 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   pcl_conversions
 
+  tf2
+  tf2_geometry_msgs
+  tf2_ros
+  tf2_sensor_msgs
+
   std_msgs
   sensor_msgs
   geometry_msgs
@@ -23,6 +28,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(GTSAM REQUIRED QUIET)
 find_package(PCL REQUIRED QUIET)
 find_package(OpenCV REQUIRED QUIET)
+find_package(Eigen3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS chrono)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -36,6 +43,8 @@ include_directories(
 	${PCL_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
 	${GTSAM_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIR} 
+  ${Boost_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -43,6 +52,8 @@ link_directories(
 	${OpenCV_LIBRARY_DIRS}
 	${PCL_LIBRARY_DIRS}
 	${GTSAM_LIBRARY_DIRS}
+  ${EIGEN3_LIBRARY_DIR} 
+  ${Boost_LIBRARY_DIRS}
 )
 
 find_package(Torch REQUIRED)
@@ -64,3 +75,6 @@ target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Ope
 
 add_executable(globalLocalization src/localization/globalLocalization.cpp)
 target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  "${TORCH_LIBRARIES}")
+
+add_executable(particleFilter src/localization/particleFilter.cpp)
+target_link_libraries(particleFilter ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})

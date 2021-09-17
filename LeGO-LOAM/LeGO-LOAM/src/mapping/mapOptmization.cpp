@@ -46,6 +46,7 @@
 #include <gtsam/nonlinear/Values.h>
 
 #include <gtsam/nonlinear/ISAM2.h>
+#include <boost/serialization/access.hpp>
 
 using namespace gtsam;
 using namespace std;
@@ -53,8 +54,12 @@ using namespace std;
 class mapOptimization{
 
 private:
+<<<<<<< HEAD
     vector<BetweenFactor<Pose3>> betweenFactorList;
 
+=======
+    std::vector<std::vector<float>> poseList;
+>>>>>>> working
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -69,7 +74,8 @@ private:
 
     //haeyeon
     string model_path;
-    
+    bool save_map;
+
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMapped;
     ros::Publisher pubKeyPoses;
@@ -232,13 +238,17 @@ private:
     LocNetManager *locnetManager;
 
 public:  
-    
+    ~mapOptimization()
+    {
+        std::cout<<"class destructor"<<std::endl;
+    }
     mapOptimization():
         nh("~")
     {
         // LOADING MODEL
         locnetManager = new LocNetManager();
         nh.param<std::string>("model_path", model_path, "/home/haeyeon/model.pt"); 
+        nh.param<bool>("save_map", save_map, "true"); 
         
         locnetManager->loadModel(model_path);
 
@@ -735,7 +745,13 @@ public:
             pcl::toROSMsg(*cloudOut, cloudMsgTemp);
             cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
             cloudMsgTemp.header.frame_id = "/camera_init";
-            pubRegisteredCloud.publish(cloudMsgTemp);            
+            pubRegisteredCloud.publish(cloudMsgTemp);     
+            if(save_map)
+            {
+                std::cout<<" Saving Map ... " <<cloudOut->points.size() << std::endl;
+                pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/lego_loam_map.pcd", *cloudOut);
+            }
+               
         } 
     }
 
@@ -806,8 +822,6 @@ public:
 	    // downsample visualized points
         downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
         downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
-        std::cout<<" Saving Map ... " <<std::endl;
-        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/lego_loam_map.pcd", *globalMapKeyFramesDS);
         sensor_msgs::PointCloud2 cloudMsgTemp;
         pcl::toROSMsg(*globalMapKeyFramesDS, cloudMsgTemp);
         cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
@@ -1423,9 +1437,14 @@ public:
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
         
+<<<<<<< HEAD
 
         
         // gtSAMgraph.resize(0);
+=======
+        gtSAMgraph.resize(0);
+        
+>>>>>>> working
         initialEstimate.clear();
 
         /**
@@ -1482,10 +1501,21 @@ public:
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
         outlierCloudKeyFrames.push_back(thisOutlierKeyFrame);
         
-        // haeyeon Descriptor LocNet
+
+        // ** Haeyeon **
+        
+        // Descriptor LocNet
         pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
         pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
         locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
+
+        // save keypoint pose
+        if (save_map)
+        {
+            std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
+            pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D);
+        }
+        
     }
 
     void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg){
@@ -1561,18 +1591,6 @@ public:
                 clearCloud();
             }
         }
-
-        // save gtsam graph 
-        // ofstream ofs("/home/haeyeon/Cocel/result_gtsam_graph.ros", std::ofstream::binary);   
-        // gtSAMgraph.saveGraph(ofs);
-        // ofs.write((char *)&gtSAMgraph, sizeof(gtSAMgraph));
-        // ofs.close();
-        // gtSAMgraph.print();
-        // // auto node = gtSAMgraph.at(0);
-        // ROS_INFO("saved %d szied graph", sizeof(gtSAMgraph));
-
-        
-        
     }
 };
 
@@ -1597,7 +1615,6 @@ int main(int argc, char** argv)
 
         rate.sleep();
     }
-
     loopthread.join();
     visualizeMapThread.join();
 

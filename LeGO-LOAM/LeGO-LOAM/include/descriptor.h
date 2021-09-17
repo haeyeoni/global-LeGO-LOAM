@@ -1,4 +1,6 @@
 #pragma once
+#ifndef DESCRIPTOR_H
+#define DESCRIPTOR_H
 
 #include <ctime>
 #include <cassert>
@@ -9,6 +11,7 @@
 #include <cstdlib>
 #include <memory>
 #include <iostream>
+#include <string>
 
 #include <Eigen/Dense>
 
@@ -26,6 +29,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/kdtree/kdtree_flann.h>
+
+
 
 #include <torch/torch.h>
 #include <torch/script.h> 
@@ -208,7 +213,6 @@ public:
         pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/feature_cloud.pcd", *featureCloud);
     }   
     
-
     //// Localization
     void loadFeatureCloud(string featurePath)
     {
@@ -220,20 +224,17 @@ public:
         kdtreeFeatures->setInputCloud(featureCloud);  
     }
 
-
-    void findCandidates(at::Tensor inputDescriptor, double distBoundary, std::vector<int> &knnIdx, std::vector<float> &knnDist, std::vector<int> &nodeIdList)
-    {
-        PointType locnetFeature;
-        nodeIdList.clear();
-        locnetFeature.x = inputDescriptor[0][0].item<float>();
-        locnetFeature.y = inputDescriptor[0][1].item<float>();
-        locnetFeature.z = inputDescriptor[0][2].item<float>();
-
-        kdtreeFeatures->radiusSearch(locnetFeature, distBoundary, knnIdx, knnDist);
-        for (std::size_t i = 0; i < knnIdx.size(); i ++)
+    void findCandidates(PointType inputFeature, double radius, std::vector<int> &searchIdx, std::vector<float> &searchDist, std::vector<int> &nodeList)
+    {   
+        kdtreeFeatures->radiusSearch(inputFeature, radius, searchIdx, searchDist);
+        ROS_INFO("Found %d number of candidates", searchIdx.size());
+        for (size_t i = 0; i < searchIdx.size(); i ++)
         {
-            nodeIdList.push_back(featureCloud->points[knnIdx[i]].intensity);
+            nodeList.push_back(featureCloud->points[searchIdx[i]].intensity);
         }
+
     }
 
 };
+
+#endif

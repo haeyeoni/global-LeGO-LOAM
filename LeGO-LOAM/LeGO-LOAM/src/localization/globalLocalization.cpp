@@ -13,6 +13,9 @@
 
 #include <gtsam/nonlinear/ISAM2.h>
 
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/MultiArrayDimension.h>
+
 using namespace gtsam;
 using PointType = pcl::PointXYZI;
 
@@ -23,108 +26,87 @@ private:
     LocNetManager *locnetManager;
 
     ros::NodeHandle nh;
-    ros::Subscriber subLaserCloudRaw;
+    ros::Subscriber subPointCloud;
     ros::Publisher pubMapCloud;
-
+    ros::Publisher pubInitialize;
     string modelPath;
     string featureCloudPath;
-    double featureDistBoundary;
+    double searchRadius;
     pcl::PointCloud<PointType>::Ptr globalMap;
-    pcl::PointCloud<PointType>::Ptr featureCloud;
+    pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
 
-    bool loaded_map = false;            
+    ISAM2 *isam;
+    Values isamCurrentEstimate;  
+    Values initialEstimate;  
+    bool initialized = false;
 
 public:
     globalLocalization():nh("~")
     {
-
-        vector<BetweenFactor<Pose3>> betweenFactorList;
-        ifstream ifs;
-        ifs.open("/home/haeyeon/Cocel/between_factor.ros",  ios::binary);   
-        ifs.read((char *)&betweenFactorList, sizeof(betweenFactorList));   
-        // ROS_INFO("Loaded between factor sized %d", sizeof(betweenFactorList)); 
-
-        // vector<PriorFactor<Pose3>> priorFactorList;
-        // ifstream ifs2("/home/haeyeon/Cocel/prior_factor.ros", ios::binary);   
-        // ifs2.read((char *)&priorFactorList, sizeof(priorFactorList));   
-        // ROS_INFO("Loaded prior factor sized %d", sizeof(priorFactorList)); 
-
-        // nh.param<std::string>("model_path", modelPath, "/home/haeyeon/model.pt"); 
-        // nh.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
-        // nh.param<double>("feature_dist_boundary", featureDistBoundary, 1.0); 
+        // LOADING MODEL
+        locnetManager = new LocNetManager();    
+        cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
+        nh.param<std::string>("model_path", modelPath, "/home/haeyeon/model.pt"); 
+        nh.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
+        nh.param<double>("search_radius", searchRadius, 10.0); 
+        locnetManager->loadModel(modelPath);
+        locnetManager->loadFeatureCloud(featureCloudPath);
         
-        // // LOADING MODEL
-        // locnetManager = new LocNetManager();    
-        // globalMap.reset(new pcl::PointCloud<PointType>());
-        // locnetManager->loadModel(modelPath);
-        // locnetManager->loadFeatureCloud(featureCloudPath);
-
-        // loadMapAndGraph();
-        // subLaserCloudRaw = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &globalLocalization::laserCloudRawHandler, this);        
-        // pubMapCloud = nh.advertise<sensor_msgs::PointCloud2>("/map_cloud", 2);
-    }
-
-
-    void loadMapAndGraph()
-    {
-        // load map
-        if (pcl::io::loadPCDFile<PointType> ("/home/haeyeon/Cocel/lego_loam_map.pcd", *globalMap) == -1) //* load the file
+        // load poses list        
+        if (pcl::io::loadPCDFile<PointType> ("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D) == -1) //* load the file
         {
             PCL_ERROR ("Couldn't read pcd \n");
             return;
         }
-        loaded_map = true;
-        std::cout<< "Loaded Map Cloud"<<std::endl; 
+        std::cout<< "Loaded pose list"<<std::endl; 
 
-        // load graph
-        // ifstream ifs("/home/haeyeon/Cocel/result_gtsam_graph.ros", ios::binary);   
-        // ifs.read((char *)&gtSAMgraph, sizeof(gtSAMgraph));   
-        // ROS_INFO("Loaded GTSAM Graph sized %d", sizeof(gtSAMgraph)); 
-
-        vector<BetweenFactor<Pose3>> betweenFactorList;
-        ifstream ifs1("/home/haeyeon/Cocel/between_factor.ros", ios::binary);   
-        ifs1.read((char *)&betweenFactorList, sizeof(betweenFactorList));   
-        ROS_INFO("Loaded between factor sized %d", sizeof(betweenFactorList)); 
-
-        vector<PriorFactor<Pose3>> priorFactorList;
-        ifstream ifs2("/home/haeyeon/Cocel/prior_factor.ros", ios::binary);   
-        ifs2.read((char *)&priorFactorList, sizeof(priorFactorList));   
-        ROS_INFO("Loaded prior factor sized %d", sizeof(priorFactorList)); 
-
-
+        pubInitialize = nh.advertise<std_msgs::Float32MultiArray>("/initialize_data", 1);
+        subPointCloud = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 10, &globalLocalization::handlePointCloud, this);        
     }
 
-    void publishMap()
+    void handlePointCloud(const sensor_msgs::PointCloud2ConstPtr& msg)
     {
-        if (loaded_map)
+        if (!initialized)
         {
-            sensor_msgs::PointCloud2 mapCloudMsg;
-            pcl::toROSMsg(*globalMap, mapCloudMsg);
-            mapCloudMsg.header.stamp = ros::Time::now();
-            mapCloudMsg.header.frame_id = "/camera_init";
-            pubMapCloud.publish(mapCloudMsg);
-        }        
-    }
+            // initialized = true;
+            std_msgs::Float32MultiArray initialPoseMsg;
+            pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
+            pcl::fromROSMsg(*msg, *laserCloudRaw);
+            std::vector<int> searchIdx, nodeList;
+            std::vector<float> searchDist;
+            auto output = locnetManager->makeDescriptor(laserCloudRaw);
 
-    void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg)
-    {
-        ROS_INFO_ONCE("called raw handler");
-        pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
-        pcl::fromROSMsg(*msg, *laserCloudRaw);
-        auto descriptor = locnetManager->makeDescriptor(laserCloudRaw);
-        
-        std::vector<int> knnIdx;
-        std::vector<float> knnDist;
-        std::vector<int> nodeIdList;
+            PointType locnetFeature;
+            locnetFeature.x = output[0][0].item<float>();
+            locnetFeature.y = output[0][1].item<float>();
+            locnetFeature.z = output[0][2].item<float>();
+            locnetManager->findCandidates(locnetFeature, searchRadius, searchIdx, searchDist, nodeList);
+            if (nodeList.size() > 0)
+            {
+                float similaritySum = 0;
 
-        locnetManager->findCandidates(descriptor, featureDistBoundary, knnIdx, knnDist, nodeIdList);
-        // get node from gtsam graph
-        for (std::size_t i = 0; i < knnIdx.size(); i ++)
-        {
-            std::cout<<"node at" << nodeIdList[i]<<" "<< std::endl;
-            
+                std::vector<float> poseData(3*10, 0); // maximum 10 candidates
+                for (size_t i = 0; i < nodeList.size(); i++)
+                {
+                    poseData[3*i + 0] = cloudKeyPoses3D->points[nodeList[i]].x;
+                    poseData[3*i + 1] = cloudKeyPoses3D->points[nodeList[i]].y;
+                    poseData[3*i + 2] = searchDist[i];
+                    similaritySum += searchDist[i];
+                }
+
+                initialPoseMsg.data = poseData; // data: x pose, y pose, similarity term
+                initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+                initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+                initialPoseMsg.layout.dim[0].label = "similarity_sum";
+                initialPoseMsg.layout.dim[0].size = similaritySum;
+                initialPoseMsg.layout.dim[1].label = "length";
+                initialPoseMsg.layout.dim[1].size = nodeList.size();
+                pubInitialize.publish(initialPoseMsg); 
+                initialized = true;
+            }
         }
     }
+
 
 };
 
@@ -140,7 +122,6 @@ int main(int argc, char** argv)
     while (ros::ok())
     {
         ros::spinOnce();
-        GL.publishMap();
     }
 
     return 0;

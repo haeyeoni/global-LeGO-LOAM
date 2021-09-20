@@ -736,19 +736,20 @@ public:
             pcl::toROSMsg(*cloudOut, cloudMsgTemp);
             cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
             cloudMsgTemp.header.frame_id = "/camera_init";
-            pubRegisteredCloud.publish(cloudMsgTemp);
-            
+            pubRegisteredCloud.publish(cloudMsgTemp);            	    
             // Haeyeon: save map
             if(save_map)
             {
                 ROS_INFO_ONCE(" Saving Map ... ");
                 pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd", *cloudOut);
             }
+
         } 
     }
 
     void visualizeGlobalMapThread(){
         ros::Rate rate(0.2);
+        ROS_INFO_ONCE("visual thread joined");
         while (ros::ok()){
             rate.sleep();
             publishGlobalMap();
@@ -809,7 +810,16 @@ public:
 			*globalMapKeyFrames += *transformPointCloud(surfCloudKeyFrames[thisKeyInd],    &cloudKeyPoses6D->points[thisKeyInd]);
 			*globalMapKeyFrames += *transformPointCloud(outlierCloudKeyFrames[thisKeyInd], &cloudKeyPoses6D->points[thisKeyInd]);
         }
-	    // downsample visualized points
+
+        // Haeyeon: save map
+        if(save_map)
+        {
+            ROS_INFO_ONCE(" Saving Map ... ");
+            pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map2.pcd", *globalMapKeyFramesDS);
+        }
+
+
+        // downsample visualized points
         downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
         downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
  

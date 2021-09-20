@@ -140,6 +140,7 @@ public:
             PCL_ERROR ("Couldn't read pcd \n");
             return;
         }
+        ROS_INFO_ONCE("Map loaded");
         loaded_map = true;
         
         // reset particle filter and model 
@@ -166,9 +167,9 @@ public:
 
     void handleMapCloud()
     {
-        ROS_INFO_ONCE("Map loaded");
-
         // Downsampling the pointcloud map
+        if (!loaded_map)
+            return;
         pcl::VoxelGrid<PointType> ds;
         ds.setInputCloud(global_map_);
         ds.setLeafSize(map_downsample_x_, map_downsample_y_, map_downsample_z_);
@@ -205,12 +206,10 @@ public:
 
         // publish map
         sensor_msgs::PointCloud2 map_cloud_msg;
-        pcl::toROSMsg(*map_transformed, map_cloud_msg);
+        pcl::toROSMsg(*global_map_, map_cloud_msg);
         map_cloud_msg.header.stamp = ros::Time::now();
-        map_cloud_msg.header.frame_id = "/map";
+        map_cloud_msg.header.frame_id = "camera_init";
         pubMapCloud.publish(map_cloud_msg); 
-        
-        std::cout<<"publishing map: "<< map_cloud_msg.height << " "<<map_cloud_msg.width << std::endl;
     }
 
     void handleLaserOdometry(const nav_msgs::Odometry::ConstPtr& odom_msg)
@@ -314,7 +313,7 @@ public:
             sensor_msgs::PointCloud2 pointcloud_msg;    
             pcl::toROSMsg(*local_accum_pointcloud_, pointcloud_msg);
             pointcloud_msg.header = header;
-            pubTempCloud.publish(pointcloud_msg);
+            // pubTempCloud.publish(pointcloud_msg);
         }
         catch (tf2::TransformException& e)
         {
@@ -400,7 +399,7 @@ public:
         assert(std::isfinite(biased_mean.pose_.x_) && std::isfinite(biased_mean.pose_.y_) && std::isfinite(biased_mean.pose_.z_) &&
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
         
-        // publishPose(biased_mean, header);  
+        publishPose(biased_mean, header);  
 
 
         // 7. Publish map tf
@@ -457,6 +456,32 @@ public:
         }
     }
 
+    void publishPose(PoseState& biased_mean, const std_msgs::Header& header)
+    {
+        geometry_msgs::PoseWithCovarianceStamped pose;
+
+        geometry_msgs::TransformStamped trans;
+        trans.header.frame_id = params_.frame_ids_["map"];
+        trans.child_frame_id = params_.frame_ids_["floor"];
+        trans.transform.translation = tf2::toMsg(tf2::Vector3(0.0, 0.0, biased_mean.pose_.z_));
+        trans.transform.rotation = tf2::toMsg(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
+
+        //transforms.push_back(trans);
+
+        pose.header.stamp = header.stamp;
+        pose.header.frame_id = trans.header.frame_id;
+        pose.pose.pose.position.x = biased_mean.pose_.x_;
+        pose.pose.pose.position.y = biased_mean.pose_.y_;
+        pose.pose.pose.position.z = biased_mean.pose_.z_;
+        pose.pose.pose.orientation.x = biased_mean.rot_.x_;
+        pose.pose.pose.orientation.y = biased_mean.rot_.y_;
+        pose.pose.pose.orientation.z = biased_mean.rot_.z_;
+        pose.pose.pose.orientation.w = biased_mean.rot_.w_;
+        auto cov = pf_->covariance(std::max(0.1f, static_cast<float>(params_.num_particles_)/pf_->getParticleSize()));
+        for (size_t i = 0; i < 36; i ++)
+            pose.pose.covariance[i] = cov[i / 6][i % 6];
+        pubPose.publish(pose);
+    }
 };
 
 

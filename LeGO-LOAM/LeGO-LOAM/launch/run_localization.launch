@@ -19,14 +19,14 @@
     <node pkg="lego_loam" type="featureAssociation" name="featureAssociation" output="screen"/>
     <node pkg="lego_loam" type="mapOptmization"     name="mapOptmization"     output="screen">
         <param name="save_map" value="false"/>
-        <param name="model_path" value="/home/haeyeon/Cocel/test_ws/src/global-LeGO-LOAM/train/locnet_descriptor510.pt"/>
+        <param name="model_path" value="c:\opt\ros\melodic\test_ws\src\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
     </node>
     <node pkg="lego_loam" type="transformFusion"    name="transformFusion"    output="screen"/>
 
     <!--- Initialize -->    
     <node pkg="lego_loam" type="globalLocalization"    name="globalLocalization"    output="screen">
-        <param name="model_path" value="/home/haeyeon/Cocel/test_ws/src/global-LeGO-LOAM/train/locnet_descriptor510.pt"/>
-        <param name="feature_cloud_path" value="/home/haeyeon/Cocel/feature_cloud.pcd"/>
+        <param name="model_path" value="c:\opt\ros\melodic\test_ws\src\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
+        <param name="feature_cloud_path" value="C:\Users\Haeyeon Kim\Desktop\lego_loam_result\feature_cloud.pcd"/>
         <param name="search_radius" value="1000.0"/>
     </node>
 
@@ -37,6 +37,10 @@
         <param name="resample_var_x" value="0.1"/>
         <param name="resample_var_y" value="0.1"/>
         <param name="resample_var_yaw" value="0.1"/>
+        <param name="map_downsample_x" value="20.0"/>
+        <param name="map_downsample_x" value="20.0"/>
+        <param name="map_downsample_x" value="20.0"/>
+        
         <param name="rot_x" value="0.0"/>
         <param name="rot_y" value="-1.570795"/>
         <param name="rot_z" value="-1.570795"/>

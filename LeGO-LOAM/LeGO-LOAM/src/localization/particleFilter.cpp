@@ -135,7 +135,7 @@ public:
 
         // load saved map
         global_map_.reset(new pcl::PointCloud<PointType>());
-        if (pcl::io::loadPCDFile<PointType> ("/home/haeyeon/Cocel/lego_loam_map.pcd", *global_map_) == -1) //* load the file
+        if (pcl::io::loadPCDFile<PointType> ("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd", *global_map_) == -1) //* load the file
         {
             PCL_ERROR ("Couldn't read pcd \n");
             return;
@@ -205,10 +205,12 @@ public:
 
         // publish map
         sensor_msgs::PointCloud2 map_cloud_msg;
-        pcl::toROSMsg(*global_map_, map_cloud_msg);
+        pcl::toROSMsg(*map_transformed, map_cloud_msg);
         map_cloud_msg.header.stamp = ros::Time::now();
-        map_cloud_msg.header.frame_id = "/camera_init";
-        pubMapCloud.publish(map_cloud_msg);
+        map_cloud_msg.header.frame_id = "/map";
+        pubMapCloud.publish(map_cloud_msg); 
+        
+        std::cout<<"publishing map: "<< map_cloud_msg.height << " "<<map_cloud_msg.width << std::endl;
     }
 
     void handleLaserOdometry(const nav_msgs::Odometry::ConstPtr& odom_msg)
@@ -340,7 +342,7 @@ public:
                 return;
             }
         }
-        ROS_INFO("Flag1");
+        ROS_INFO_ONCE("Flag1");
     
         // 3. Down sampling the current accumulated point cloud (pc_local_accum)
         const auto ts = boost::chrono::high_resolution_clock::now();
@@ -359,12 +361,12 @@ public:
         const std::vector<PoseState> prev_cov = pf_->covariance(cov_ratio); 
         
         // 5. Random sample with normal distribution
-        ROS_INFO("Flag2");
+        ROS_INFO_ONCE("Flag2");
         auto sampler = std::dynamic_pointer_cast<PointCloudSampler<PointType>>(lidar_model_->getSampler());    
         sampler->setParticleStatistics(prev_mean, prev_cov);  
         pc_locals = lidar_model_->filter(pc_local_full); 
         
-        ROS_INFO("Flag3");
+        ROS_INFO_ONCE("Flag3");
         if (pc_locals->size() == 0)
         {
             ROS_ERROR("All points are filtered out.");
@@ -394,7 +396,7 @@ public:
         auto biased_mean = pf_->biasedMean(odom_prev_, params_.num_particles_, params_.bias_var_dist_, params_.bias_var_ang_); 
         biased_mean.rot_.normalize();
 
-        ROS_INFO("Flag5");
+        ROS_INFO_ONCE("Flag4");
         assert(std::isfinite(biased_mean.pose_.x_) && std::isfinite(biased_mean.pose_.y_) && std::isfinite(biased_mean.pose_.z_) &&
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
         
@@ -408,7 +410,7 @@ public:
         else if ( dt < 0.0) dt = 0.0;
         localized_last_ = localized_current;   
 
-        ROS_INFO("Flag6");    
+        ROS_INFO_ONCE("Flag5");    
         Vec3 map_pose = biased_mean.pose_ - biased_mean.rot_.inv() * odom_.pose_;
         Quat map_rot = biased_mean.rot_ * odom_.rot_.inv();
         
@@ -463,12 +465,12 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "lego_loam");
 
     ROS_INFO("Global Localization Started.");
-
     particleFilter3D PF;
-    
+    ros::Rate rate(1.0);
     while (ros::ok())
     {
         ros::spinOnce();
+        rate.sleep();
         PF.handleMapCloud();
         PF.publishParticles();
     }

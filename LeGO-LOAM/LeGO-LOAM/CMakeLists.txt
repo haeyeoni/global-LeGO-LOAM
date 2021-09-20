@@ -1,7 +1,10 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.3)
 project(lego_loam)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3")
+
+set(GTSAM_LIBRARY_DIRS "C:/Program\ Files\ (x86)/GTSAM/lib")
+set(GTSAM_INCLUDE_DIR "C:/Program\ Files\ (x86)/GTSAM/include")
 
 find_package(catkin REQUIRED COMPONENTS
   tf
@@ -28,6 +31,14 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(GTSAM REQUIRED QUIET)
 find_package(PCL REQUIRED QUIET)
 find_package(OpenCV REQUIRED QUIET)
+
+# Find Packages
+set(PCL_ROOT "C:/Program\ Files/PCL\ 1.8.1")
+set(PCL_INCLUDE_DIRS "C:/Program\ Files/PCL\ 1.8.1/include")
+set(PCL_LIBRARIES "C:/Program\ Files/PCL\ 1.8.1/lib")
+find_package(PCL REQUIRED QUIET)
+find_package(OpenCV REQUIRED QUIET)
+
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
 
@@ -56,9 +67,6 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
-find_package(Torch REQUIRED)
-
-
 add_executable(imageProjection src/mapping/imageProjection.cpp)
 add_dependencies(imageProjection ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
 target_link_libraries(imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
@@ -68,13 +76,21 @@ add_dependencies(featureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp
 target_link_libraries(featureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(mapOptmization src/mapping/mapOptmization.cpp)
-target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  "${TORCH_LIBRARIES}")
+target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM )
 
 add_executable(transformFusion src/mapping/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(globalLocalization src/localization/globalLocalization.cpp)
-target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  "${TORCH_LIBRARIES}")
+target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM)
 
 add_executable(particleFilter src/localization/particleFilter.cpp)
 target_link_libraries(particleFilter ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
+
+
+set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
+set(CUDA_TOOLKIT_ROOT_DIR "C:/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v11.4")
+find_package(Torch REQUIRED)
+
+target_link_libraries(mapOptmization "${TORCH_LIBRARIES}")
+target_link_libraries(globalLocalization "${TORCH_LIBRARIES}")

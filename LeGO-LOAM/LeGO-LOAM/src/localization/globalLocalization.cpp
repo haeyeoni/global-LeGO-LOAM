@@ -53,7 +53,7 @@ public:
         locnetManager->loadFeatureCloud(featureCloudPath);
         
         // load poses list        
-        if (pcl::io::loadPCDFile<PointType> ("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D) == -1) //* load the file
+        if (pcl::io::loadPCDFile<PointType> ("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd", *cloudKeyPoses3D) == -1) //* load the file
         {
             PCL_ERROR ("Couldn't read pcd \n");
             return;

@@ -31,10 +31,9 @@
 //     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014.
 //   T. Shan and B. Englot. LeGO-LOAM: Lightweight and Ground-Optimized Lidar Odometry and Mapping on Variable Terrain
 //      IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). October 2018.
-#include "utility.h"
+
 #include "descriptor.h" 
-#include <fstream>
-#include <iostream>
+#include "utility.h"
 
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/geometry/Pose3.h>
@@ -46,20 +45,13 @@
 #include <gtsam/nonlinear/Values.h>
 
 #include <gtsam/nonlinear/ISAM2.h>
-#include <boost/serialization/access.hpp>
 
 using namespace gtsam;
-using namespace std;
 
 class mapOptimization{
 
 private:
-<<<<<<< HEAD
-    vector<BetweenFactor<Pose3>> betweenFactorList;
 
-=======
-    std::vector<std::vector<float>> poseList;
->>>>>>> working
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -72,10 +64,6 @@ private:
 
     ros::NodeHandle nh;
 
-    //haeyeon
-    string model_path;
-    bool save_map;
-
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMapped;
     ros::Publisher pubKeyPoses;
@@ -85,7 +73,6 @@ private:
     ros::Publisher pubRecentKeyFrames;
     ros::Publisher pubRegisteredCloud;
 
-    ros::Subscriber subLaserCloudRaw;
     ros::Subscriber subLaserCloudCornerLast;
     ros::Subscriber subLaserCloudSurfLast;
     ros::Subscriber subOutlierCloudLast;
@@ -112,8 +99,7 @@ private:
     
     PointType previousRobotPosPoint;
     PointType currentRobotPosPoint;
-    
-    pcl::PointCloud<PointType>::Ptr laserCloudRaw;
+
     pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
     pcl::PointCloud<PointTypePose>::Ptr cloudKeyPoses6D;
 
@@ -234,23 +220,29 @@ private:
 
     float cRoll, sRoll, cPitch, sPitch, cYaw, sYaw, tX, tY, tZ;
     float ctRoll, stRoll, ctPitch, stPitch, ctYaw, stYaw, tInX, tInY, tInZ;
-    
-    LocNetManager *locnetManager;
 
-public:  
-    ~mapOptimization()
-    {
-        std::cout<<"class destructor"<<std::endl;
-    }
+    
+    //haeyeon
+    LocNetManager *locnetManager;
+    string model_path;
+    bool save_map, use_descriptor;
+    ros::Subscriber subLaserCloudRaw;
+    pcl::PointCloud<PointType>::Ptr laserCloudRaw;
+
+public:
     mapOptimization():
         nh("~")
     {
-        // LOADING MODEL
+        
+        // haeyeon: LOADING MODEL
         locnetManager = new LocNetManager();
         nh.param<std::string>("model_path", model_path, "/home/haeyeon/model.pt"); 
-        nh.param<bool>("save_map", save_map, "true"); 
-        
+        nh.param<bool>("save_map", save_map, "true");         
+        nh.param<bool>("use_descriptor", use_descriptor, "true");         
         locnetManager->loadModel(model_path);
+        subLaserCloudRaw = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &mapOptimization::laserCloudRawHandler, this);   
+        //
+
 
     	ISAM2Params parameters;
 		parameters.relinearizeThreshold = 0.01;
@@ -260,8 +252,7 @@ public:
         pubKeyPoses = nh.advertise<sensor_msgs::PointCloud2>("/key_pose_origin", 2);
         pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surround", 2);
         pubOdomAftMapped = nh.advertise<nav_msgs::Odometry> ("/aft_mapped_to_init", 5);
-        
-        subLaserCloudRaw = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &mapOptimization::laserCloudRawHandler, this);        
+
         subLaserCloudCornerLast = nh.subscribe<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 2, &mapOptimization::laserCloudCornerLastHandler, this);
         subLaserCloudSurfLast = nh.subscribe<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 2, &mapOptimization::laserCloudSurfLastHandler, this);
         subOutlierCloudLast = nh.subscribe<sensor_msgs::PointCloud2>("/outlier_cloud_last", 2, &mapOptimization::laserCloudOutlierLastHandler, this);
@@ -293,7 +284,7 @@ public:
     }
 
     void allocateMemory(){
-        laserCloudRaw.reset(new pcl::PointCloud<PointType>()); // raw pointcloud save for generate descriptor
+        laserCloudRaw.reset(new pcl::PointCloud<PointType>()); // haeyeon: raw pointcloud save for generate descriptor
 
         cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
         cloudKeyPoses6D.reset(new pcl::PointCloud<PointTypePose>());
@@ -745,27 +736,26 @@ public:
             pcl::toROSMsg(*cloudOut, cloudMsgTemp);
             cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
             cloudMsgTemp.header.frame_id = "/camera_init";
-            pubRegisteredCloud.publish(cloudMsgTemp);     
+            pubRegisteredCloud.publish(cloudMsgTemp);
+            
+            // Haeyeon: save map
             if(save_map)
             {
-                std::cout<<" Saving Map ... " <<cloudOut->points.size() << std::endl;
-                pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/lego_loam_map.pcd", *cloudOut);
+                ROS_INFO_ONCE(" Saving Map ... ");
+                pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd", *cloudOut);
             }
-               
         } 
     }
 
     void visualizeGlobalMapThread(){
-        ROS_INFO_ONCE("visual thread");
         ros::Rate rate(0.2);
         while (ros::ok()){
             rate.sleep();
             publishGlobalMap();
-       
         }
         // save final point cloud
         pcl::io::savePCDFileASCII(fileDirectory+"finalCloud.pcd", *globalMapKeyFramesDS);
-        
+
         string cornerMapString = "/tmp/cornerMap.pcd";
         string surfaceMapString = "/tmp/surfaceMap.pcd";
         string trajectoryString = "/tmp/trajectory.pcd";
@@ -822,12 +812,13 @@ public:
 	    // downsample visualized points
         downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
         downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
+ 
         sensor_msgs::PointCloud2 cloudMsgTemp;
         pcl::toROSMsg(*globalMapKeyFramesDS, cloudMsgTemp);
         cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
         cloudMsgTemp.header.frame_id = "/camera_init";
         pubLaserCloudSurround.publish(cloudMsgTemp);  
-        
+
         globalMapKeyPoses->clear();
         globalMapKeyPosesDS->clear();
         globalMapKeyFrames->clear();
@@ -835,7 +826,7 @@ public:
     }
 
     void loopClosureThread(){
-        ROS_INFO_ONCE("loop thread");
+
         if (loopClosureEnableFlag == false)
             return;
 
@@ -972,10 +963,9 @@ public:
         	*/
         std::lock_guard<std::mutex> lock(mtx);
         gtSAMgraph.add(BetweenFactor<Pose3>(latestFrameIDLoopCloure, closestHistoryFrameID, poseFrom.between(poseTo), constraintNoise));
-        betweenFactorList.push_back(BetweenFactor<Pose3>(latestFrameIDLoopCloure, closestHistoryFrameID, poseFrom.between(poseTo), constraintNoise));
         isam->update(gtSAMgraph);
         isam->update();
-        // gtSAMgraph.resize(0);
+        gtSAMgraph.resize(0);
 
         aLoopIsClosed = true;
     }
@@ -1422,29 +1412,16 @@ public:
             gtsam::Pose3 poseTo   = Pose3(Rot3::RzRyRx(transformAftMapped[2], transformAftMapped[0], transformAftMapped[1]),
                                                 Point3(transformAftMapped[5], transformAftMapped[3], transformAftMapped[4]));
             gtSAMgraph.add(BetweenFactor<Pose3>(cloudKeyPoses3D->points.size()-1, cloudKeyPoses3D->points.size(), poseFrom.between(poseTo), odometryNoise));
-            
-            betweenFactorList.push_back(BetweenFactor<Pose3>(cloudKeyPoses3D->points.size()-1, cloudKeyPoses3D->points.size(), poseFrom.between(poseTo), odometryNoise));
             initialEstimate.insert(cloudKeyPoses3D->points.size(), Pose3(Rot3::RzRyRx(transformAftMapped[2], transformAftMapped[0], transformAftMapped[1]),
                                                                      		   Point3(transformAftMapped[5], transformAftMapped[3], transformAftMapped[4])));
         }
-
-        ofstream ofs("/home/haeyeon/Cocel/between_factor.ros", std::ofstream::binary);   
-        ofs.write((char *)&betweenFactorList, sizeof(betweenFactorList));
-        
         /**
          * update iSAM
          */
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
         
-<<<<<<< HEAD
-
-        
-        // gtSAMgraph.resize(0);
-=======
         gtSAMgraph.resize(0);
-        
->>>>>>> working
         initialEstimate.clear();
 
         /**
@@ -1501,26 +1478,21 @@ public:
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
         outlierCloudKeyFrames.push_back(thisOutlierKeyFrame);
         
-
         // ** Haeyeon **
-        
         // Descriptor LocNet
-        pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
-        pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
-        locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
-
+        if (use_descriptor)
+        {
+            pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
+            pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
+            locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
+        }
+        
         // save keypoint pose
         if (save_map)
         {
             std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
-            pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/key_poses.pcd", *cloudKeyPoses3D);
+            pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd", *cloudKeyPoses3D);
         }
-        
-    }
-
-    void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg){
-        laserCloudRaw->clear();
-        pcl::fromROSMsg(*msg, *laserCloudRaw);
     }
 
     void correctPoses(){
@@ -1545,8 +1517,6 @@ public:
 
             aLoopIsClosed = false;
         }
-
-
     }
 
     void clearCloud(){
@@ -1592,6 +1562,12 @@ public:
             }
         }
     }
+    
+    // Haeyeon
+    void laserCloudRawHandler(const sensor_msgs::PointCloud2ConstPtr& msg){
+        laserCloudRaw->clear();
+        pcl::fromROSMsg(*msg, *laserCloudRaw);
+    }
 };
 
 
@@ -1615,8 +1591,9 @@ int main(int argc, char** argv)
 
         rate.sleep();
     }
+
     loopthread.join();
     visualizeMapThread.join();
 
     return 0;
-}
+} 

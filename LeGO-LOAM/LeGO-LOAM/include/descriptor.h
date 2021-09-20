@@ -31,7 +31,6 @@
 #include <pcl/kdtree/kdtree_flann.h>
 
 
-
 #include <torch/torch.h>
 #include <torch/script.h> 
 #include "utility.h"
@@ -210,7 +209,7 @@ public:
         locnet_feature.intensity = nodeId;
 
         featureCloud->push_back(locnet_feature);    
-        pcl::io::savePCDFileASCII("/home/haeyeon/Cocel/feature_cloud.pcd", *featureCloud);
+        pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_cloud.pcd", *featureCloud);
     }   
     
     //// Localization

@@ -33,11 +33,13 @@
 //      IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). October 2018.
 
 #include "utility.h"
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
 
-class ImageProjection{
+namespace lego_loam
+{
+class ImageProjection : public nodelet::Nodelet {
 private:
-
-    ros::NodeHandle nh;
 
     ros::Subscriber subLaserCloud;
     
@@ -81,10 +83,16 @@ private:
 
     uint16_t *queueIndX; // array for breadth-first search process of segmentation, for speed
     uint16_t *queueIndY;
+    bool initialized = false;
 
 public:
-    ImageProjection():
-        nh("~"){
+    ImageProjection() = default;
+    virtual void onInit()
+    {
+        ROS_INFO("\033[1;32m---->\033[0m Image Projection Started.");
+
+        ros::NodeHandle nh = getNodeHandle();
+		ros::NodeHandle nhp = getPrivateNodeHandle();
 
         subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 1, &ImageProjection::cloudHandler, this);
 
@@ -96,14 +104,17 @@ public:
         pubSegmentedCloudPure = nh.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud_pure", 1);
         pubSegmentedCloudInfo = nh.advertise<cloud_msgs::cloud_info> ("/segmented_cloud_info", 1);
         pubOutlierCloud = nh.advertise<sensor_msgs::PointCloud2> ("/outlier_cloud", 1);
+        if (!initialized)
+        {
+            nanPoint.x = std::numeric_limits<float>::quiet_NaN();
+            nanPoint.y = std::numeric_limits<float>::quiet_NaN();
+            nanPoint.z = std::numeric_limits<float>::quiet_NaN();
+            nanPoint.intensity = -1;
 
-        nanPoint.x = std::numeric_limits<float>::quiet_NaN();
-        nanPoint.y = std::numeric_limits<float>::quiet_NaN();
-        nanPoint.z = std::numeric_limits<float>::quiet_NaN();
-        nanPoint.intensity = -1;
-
-        allocateMemory();
-        resetParameters();
+            allocateMemory();
+            resetParameters();
+            initialized = true;
+        } 
     }
 
     void allocateMemory(){
@@ -507,17 +518,5 @@ public:
     }
 };
 
-
-
-
-int main(int argc, char** argv){
-
-    ros::init(argc, argv, "lego_loam");
-    
-    ImageProjection IP;
-
-    ROS_INFO("\033[1;32m---->\033[0m Image Projection Started.");
-
-    ros::spin();
-    return 0;
 }
+PLUGINLIB_EXPORT_CLASS(lego_loam::ImageProjection, nodelet::Nodelet)

@@ -30,13 +30,16 @@
 //   J. Zhang and S. Singh. LOAM: Lidar Odometry and Mapping in Real-time.
 //     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014.
 
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
 #include "utility.h"
 
-class TransformFusion{
+namespace lego_loam
+{
+    
+class TransformFusion : public nodelet::Nodelet{
 
 private:
-
-    ros::NodeHandle nh;
 
     ros::Publisher pubLaserOdometry2;
     ros::Subscriber subLaserOdometry;
@@ -63,8 +66,14 @@ private:
 
 public:
 
-    TransformFusion(){
+    TransformFusion() = default;
+    virtual void onInit()    
+    {
+        ROS_INFO("\033[1;32m---->\033[0m Transform Fusion Started.");
 
+        ros::NodeHandle nh = getNodeHandle();
+		ros::NodeHandle nhp = getPrivateNodeHandle();
+        
         pubLaserOdometry2 = nh.advertise<nav_msgs::Odometry> ("/integrated_to_init", 5);
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
         subOdomAftMapped = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
@@ -239,16 +248,19 @@ public:
     }
 };
 
-
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "lego_loam");
-    
-    TransformFusion TFusion;
-
-    ROS_INFO("\033[1;32m---->\033[0m Transform Fusion Started.");
-
-    ros::spin();
-
-    return 0;
 }
+PLUGINLIB_EXPORT_CLASS(lego_loam::TransformFusion, nodelet::Nodelet)
+
+
+// int main(int argc, char** argv)
+// {
+//     ros::init(argc, argv, "lego_loam");
+    
+//     TransformFusion TFusion;
+
+//     ROS_INFO("\033[1;32m---->\033[0m Transform Fusion Started.");
+
+//     ros::spin();
+
+//     return 0;
+// }

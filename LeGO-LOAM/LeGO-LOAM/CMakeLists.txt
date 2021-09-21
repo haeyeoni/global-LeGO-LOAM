@@ -26,6 +26,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
   cloud_msgs
+
+  nodelet
 )
 
 find_package(GTSAM REQUIRED QUIET)
@@ -44,7 +46,8 @@ find_package(Boost REQUIRED COMPONENTS chrono)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS cloud_msgs
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS cloud_msgs nodelet 
   DEPENDS PCL
 )
 
@@ -67,18 +70,18 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
-add_executable(imageProjection src/mapping/imageProjection.cpp)
+add_library(imageProjection src/mapping/imageProjection.cpp)
 add_dependencies(imageProjection ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
 target_link_libraries(imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_executable(featureAssociation src/mapping/featureAssociation.cpp)
+add_library(featureAssociation src/mapping/featureAssociation.cpp)
 add_dependencies(featureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
 target_link_libraries(featureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_executable(mapOptmization src/mapping/mapOptmization.cpp)
-target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM )
+add_library(mapOptimization src/mapping/mapOptimization.cpp)
+target_link_libraries(mapOptimization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM )
 
-add_executable(transformFusion src/mapping/transformFusion.cpp)
+add_library(transformFusion src/mapping/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(globalLocalization src/localization/globalLocalization.cpp)
@@ -92,5 +95,5 @@ set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
 set(CUDA_TOOLKIT_ROOT_DIR "C:/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v11.4")
 find_package(Torch REQUIRED)
 
-target_link_libraries(mapOptmization "${TORCH_LIBRARIES}")
+target_link_libraries(mapOptimization "${TORCH_LIBRARIES}")
 target_link_libraries(globalLocalization "${TORCH_LIBRARIES}")

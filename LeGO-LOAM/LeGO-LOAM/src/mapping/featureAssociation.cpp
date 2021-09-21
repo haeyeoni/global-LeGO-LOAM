@@ -33,12 +33,15 @@
 //      IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). October 2018.
 
 #include "utility.h"
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
 
-class FeatureAssociation{
+namespace lego_loam
+{
+    
+class FeatureAssociation : public nodelet::Nodelet {
 
 private:
-
-	ros::NodeHandle nh;
 
     ros::Subscriber subLaserCloud;
     ros::Subscriber subLaserCloudInfo;
@@ -130,7 +133,7 @@ private:
     float imuAngularRotationZ[imuQueLength];
 
 
-
+    ros::Timer timer;
     ros::Publisher pubLaserCloudCornerLast;
     ros::Publisher pubLaserCloudSurfLast;
     ros::Publisher pubLaserOdometry;
@@ -182,11 +185,15 @@ private:
     int frameCount;
 
 public:
+    FeatureAssociation() = default;
+    
+    virtual void onInit()
+    {
+        ROS_INFO("\033[1;32m---->\033[0m Feature Association Started.");  
 
-    FeatureAssociation():
-        nh("~")
-        {
-
+        ros::NodeHandle nh = getNodeHandle();
+		ros::NodeHandle nhp = getPrivateNodeHandle();
+        
         subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>("/segmented_cloud", 1, &FeatureAssociation::laserCloudHandler, this);
         subLaserCloudInfo = nh.subscribe<cloud_msgs::cloud_info>("/segmented_cloud_info", 1, &FeatureAssociation::laserCloudInfoHandler, this);
         subOutlierCloud = nh.subscribe<sensor_msgs::PointCloud2>("/outlier_cloud", 1, &FeatureAssociation::outlierCloudHandler, this);
@@ -203,6 +210,7 @@ public:
         pubLaserOdometry = nh.advertise<nav_msgs::Odometry> ("/laser_odom_to_init", 5);
         
         initializationValue();
+        timer = nh.createTimer(ros::Duration(0.005), boost::bind(&FeatureAssociation::runFeatureAssociation, this, _1));
     }
 
     void initializationValue()
@@ -1814,9 +1822,8 @@ public:
         }
     }
 
-    void runFeatureAssociation()
+    void runFeatureAssociation(const ros::TimerEvent& event)
     {
-
         if (newSegmentedCloud && newSegmentedCloudInfo && newOutlierCloud &&
             std::abs(timeNewSegmentedCloudInfo - timeNewSegmentedCloud) < 0.05 &&
             std::abs(timeNewOutlierCloud - timeNewSegmentedCloud) < 0.05){
@@ -1859,28 +1866,7 @@ public:
         publishCloudsLast(); // cloud to mapOptimization
     }
 };
-
-
-
-
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "lego_loam");
-
-    ROS_INFO("\033[1;32m---->\033[0m Feature Association Started.");
-
-    FeatureAssociation FA;
-
-    ros::Rate rate(200);
-    while (ros::ok())
-    {
-        ros::spinOnce();
-
-        FA.runFeatureAssociation();
-
-        rate.sleep();
-    }
-    
-    ros::spin();
-    return 0;
 }
+
+PLUGINLIB_EXPORT_CLASS(lego_loam::FeatureAssociation, nodelet::Nodelet)
+

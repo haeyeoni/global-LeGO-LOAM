@@ -38,6 +38,9 @@
 
 using PointType = pcl::PointXYZI;
 
+namespace lego_loam
+{
+
 class LocNetManager
 {
 
@@ -56,11 +59,13 @@ public:
     /// Mapping
     void loadModel(string modelPath)
     {
+        std::cout<< "reading from:" << modelPath <<std::endl;
         try {
             descriptor = torch::jit::load(modelPath);
         }
         catch (const c10::Error& e) {
-            ROS_ERROR("error loading the model\n: %s", e);	    
+            ROS_ERROR("error loading the model\n: %s", e);
+            return;	    
         }
         ROS_INFO("Success loading model");    
     }
@@ -235,5 +240,5 @@ public:
     }
 
 };
-
+}
 #endif

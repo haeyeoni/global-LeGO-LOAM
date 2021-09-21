@@ -194,23 +194,23 @@ public:
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
         
-        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>("/segmented_cloud", 1, &FeatureAssociation::laserCloudHandler, this);
-        subLaserCloudInfo = nh.subscribe<cloud_msgs::cloud_info>("/segmented_cloud_info", 1, &FeatureAssociation::laserCloudInfoHandler, this);
-        subOutlierCloud = nh.subscribe<sensor_msgs::PointCloud2>("/outlier_cloud", 1, &FeatureAssociation::outlierCloudHandler, this);
-        subImu = nh.subscribe<sensor_msgs::Imu>(imuTopic, 50, &FeatureAssociation::imuHandler, this);
+        subLaserCloud = nhp.subscribe<sensor_msgs::PointCloud2>("/segmented_cloud", 1, &FeatureAssociation::laserCloudHandler, this);
+        subLaserCloudInfo = nhp.subscribe<cloud_msgs::cloud_info>("/segmented_cloud_info", 1, &FeatureAssociation::laserCloudInfoHandler, this);
+        subOutlierCloud = nhp.subscribe<sensor_msgs::PointCloud2>("/outlier_cloud", 1, &FeatureAssociation::outlierCloudHandler, this);
+        subImu = nhp.subscribe<sensor_msgs::Imu>(imuTopic, 50, &FeatureAssociation::imuHandler, this);
 
-        pubCornerPointsSharp = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_sharp", 1);
-        pubCornerPointsLessSharp = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_sharp", 1);
-        pubSurfPointsFlat = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_flat", 1);
-        pubSurfPointsLessFlat = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_flat", 1);
+        pubCornerPointsSharp = nhp.advertise<sensor_msgs::PointCloud2>("/laser_cloud_sharp", 1);
+        pubCornerPointsLessSharp = nhp.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_sharp", 1);
+        pubSurfPointsFlat = nhp.advertise<sensor_msgs::PointCloud2>("/laser_cloud_flat", 1);
+        pubSurfPointsLessFlat = nhp.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_flat", 1);
 
-        pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 2);
-        pubLaserCloudSurfLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 2);
-        pubOutlierCloudLast = nh.advertise<sensor_msgs::PointCloud2>("/outlier_cloud_last", 2);
-        pubLaserOdometry = nh.advertise<nav_msgs::Odometry> ("/laser_odom_to_init", 5);
+        pubLaserCloudCornerLast = nhp.advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 2);
+        pubLaserCloudSurfLast = nhp.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 2);
+        pubOutlierCloudLast = nhp.advertise<sensor_msgs::PointCloud2>("/outlier_cloud_last", 2);
+        pubLaserOdometry = nhp.advertise<nav_msgs::Odometry> ("/laser_odom_to_init", 5);
         
         initializationValue();
-        timer = nh.createTimer(ros::Duration(0.005), boost::bind(&FeatureAssociation::runFeatureAssociation, this, _1));
+        timer = nhp.createTimer(ros::Duration(0.005), boost::bind(&FeatureAssociation::runFeatureAssociation, this, _1));
     }
 
     void initializationValue()

@@ -17,6 +17,8 @@
 #include <std_msgs/MultiArrayDimension.h>
 
 using namespace gtsam;
+using namespace lego_loam;
+
 using PointType = pcl::PointXYZI;
 
 class globalLocalization{

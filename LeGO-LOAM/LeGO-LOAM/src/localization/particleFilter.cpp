@@ -153,9 +153,10 @@ public:
         map_kdtree_.reset(new ChunkedKdtree<PointType>(map_chunk_, max_search_radius_, map_grid_min_ /16));    
         std::cout<< "reset all models"<<std::endl;    
         // ros subscriber & publisher
-        subInitialize = nh.subscribe("/initialize_data", 10, &particleFilter3D::handleInitializeData, this);
+        // subInitialize = nh.subscribe("/initialize_data", 10, &particleFilter3D::handleInitializeData, this);
+        handleInitializeData();
         subPointCloud = nh.subscribe("/velodyne_points", 10, &particleFilter3D::handlePointCloud, this);
-        subLaserOdometry = nh.subscribe("/integrated_to_init", 5, &particleFilter3D::handleLaserOdometry, this);
+        subLaserOdometry = nh.subscribe("/laser_odom_to_init", 5, &particleFilter3D::handleLaserOdometry, this);
 
         pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 5, true);
         pubParticles = nh.advertise<geometry_msgs::PoseArray>("/particles", 1, true);
@@ -415,15 +416,25 @@ public:
         
     }
 
-    void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
+    // void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
+    void handleInitializeData()
     {
-        int length = (int) initial_msg->layout.dim[1].size;
+        //Temp
+        std::vector<float> poseData(3*10, 0); // maximum 10 candidates
+        poseData[0] = 0.0;
+        poseData[1] = 0.0;
+        poseData[2] = 1.0;
+        
+
+        // int length = (int) initial_msg->layout.dim[1].size;
             
-        if(!initialized && length > 0)
+        // if(!initialized && length > 0)
+        if(!initialized)
         {
             std::cout<<"**********Initialization************"<<std::endl;
-            float similaritySum = initial_msg->layout.dim[0].size;
-            pf_->init(length, similaritySum, initial_msg->data);   
+            // float similaritySum = initial_msg->layout.dim[0].size;
+            // pf_->init(length, similaritySum, initial_msg->data);   
+            pf_->init(1, 1.0, poseData);
             initialized = true;
         }
     }

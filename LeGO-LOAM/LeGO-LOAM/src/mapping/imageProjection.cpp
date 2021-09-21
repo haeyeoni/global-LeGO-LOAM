@@ -94,16 +94,16 @@ public:
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
 
-        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 1, &ImageProjection::cloudHandler, this);
+        subLaserCloud = nhp.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 1, &ImageProjection::cloudHandler, this);
 
-        pubFullCloud = nh.advertise<sensor_msgs::PointCloud2> ("/full_cloud_projected", 1);
-        pubFullInfoCloud = nh.advertise<sensor_msgs::PointCloud2> ("/full_cloud_info", 1);
+        pubFullCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/full_cloud_projected", 1);
+        pubFullInfoCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/full_cloud_info", 1);
 
-        pubGroundCloud = nh.advertise<sensor_msgs::PointCloud2> ("/ground_cloud", 1);
-        pubSegmentedCloud = nh.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud", 1);
-        pubSegmentedCloudPure = nh.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud_pure", 1);
-        pubSegmentedCloudInfo = nh.advertise<cloud_msgs::cloud_info> ("/segmented_cloud_info", 1);
-        pubOutlierCloud = nh.advertise<sensor_msgs::PointCloud2> ("/outlier_cloud", 1);
+        pubGroundCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/ground_cloud", 1);
+        pubSegmentedCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud", 1);
+        pubSegmentedCloudPure = nhp.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud_pure", 1);
+        pubSegmentedCloudInfo = nhp.advertise<cloud_msgs::cloud_info> ("/segmented_cloud_info", 1);
+        pubOutlierCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/outlier_cloud", 1);
         if (!initialized)
         {
             nanPoint.x = std::numeric_limits<float>::quiet_NaN();

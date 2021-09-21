@@ -74,9 +74,9 @@ public:
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
         
-        pubLaserOdometry2 = nh.advertise<nav_msgs::Odometry> ("/integrated_to_init", 5);
-        subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
-        subOdomAftMapped = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
+        pubLaserOdometry2 = nhp.advertise<nav_msgs::Odometry> ("/integrated_to_init", 5);
+        subLaserOdometry = nhp.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
+        subOdomAftMapped = nhp.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
 
         laserOdometry2.header.frame_id = "/camera_init";
         laserOdometry2.child_frame_id = "/camera";

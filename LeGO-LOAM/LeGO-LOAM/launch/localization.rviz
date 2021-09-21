@@ -9,8 +9,9 @@ Panels:
         - /PoseArray1
         - /PointCloud21
         - /Odometry1/Shape1
-        - /Odometry2/Shape1
+        - /Axes1
         - /Axes2
+        - /PoseWithCovariance1
       Splitter Ratio: 0.5
     Tree Height: 732
   - Class: rviz/Selection
@@ -96,7 +97,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.5
+      Size (m): 0.10000000149011612
       Style: Flat Squares
       Topic: /map_cloud
       Unreliable: false
@@ -138,21 +139,61 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        aft_mapped:
+          Value: true
+        base_link:
+          Value: true
+        camera:
+          Value: true
+        camera_init:
+          Value: true
+        laser_odom:
+          Value: true
+        map:
+          Value: true
+        velodyne:
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          camera_init:
+            aft_mapped:
+              {}
+            camera:
+              {}
+            laser_odom:
+              base_link:
+                velodyne:
+                  {}
       Update Interval: 0
-      Value: false
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: base_link
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: laser_odom
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/PoseWithCovariance
+      Color: 255; 25; 0
       Covariance:
         Orientation:
           Alpha: 0.5
@@ -169,35 +210,14 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 10
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 252; 233; 79
-        Head Length: 0.10000000149011612
-        Head Radius: 0.10000000149011612
-        Shaft Length: 0.6000000238418579
-        Shaft Radius: 0.05000000074505806
-        Value: Arrow
-      Topic: /tranformed_odom
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: PoseWithCovariance
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /amcl_pose
       Unreliable: false
-      Value: true
-    - Class: rviz/Axes
-      Enabled: true
-      Length: 1
-      Name: Axes
-      Radius: 0.10000000149011612
-      Reference Frame: <Fixed Frame>
-      Value: true
-    - Class: rviz/Axes
-      Enabled: true
-      Length: 1
-      Name: Axes
-      Radius: 0.10000000149011612
-      Reference Frame: base_link
       Value: true
   Enabled: true
   Global Options:
@@ -227,25 +247,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 284.4498291015625
+      Distance: 149.24488830566406
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -83.8409423828125
-        Y: -6.8977203369140625
-        Z: 20.291685104370117
+        X: 16.405261993408203
+        Y: -5.910606861114502
+        Z: -22.573909759521484
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.1297967433929443
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.921765327453613
+      Yaw: 1.5817501544952393
     Saved: ~
 Window Geometry:
   Displays:

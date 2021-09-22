@@ -86,9 +86,9 @@ public:
   };
 
   explicit ChunkedKdtree(
-      float chunk_length = 20.0,
-      float max_search_radius = 1.0,
-      bool keep_clouds = false)
+     const float chunk_length = 20.0,
+     const float max_search_radius = 1.0,
+     const bool keep_clouds = false)
     : pos_to_chunk_(1.0 / chunk_length)
     , chunk_length_(chunk_length)
     , max_search_radius_(max_search_radius)
@@ -275,9 +275,9 @@ protected:
     }
   };
 
-  float pos_to_chunk_;
-  float chunk_length_;
-  float max_search_radius_;
+  const float pos_to_chunk_;
+  const float chunk_length_;
+  const float max_search_radius_;
   bool set_epsilon_;
   bool keep_clouds_;
   float epsilon_;

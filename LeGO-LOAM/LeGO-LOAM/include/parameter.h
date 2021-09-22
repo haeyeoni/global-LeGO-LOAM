@@ -37,6 +37,9 @@ public:
         double roll, pitch, yaw;
         double v_x, v_y, v_z;
         double v_roll, v_pitch, v_yaw;
+        pnh.param("max_z_pose", max_z_pose_, 0.0);
+        pnh.param("min_z_pose", min_z_pose_, 0.0);
+        
         pnh.param("init_x", x, 0.0);
         pnh.param("init_y", y, 0.0);
         pnh.param("init_z", z, 0.0);
@@ -121,7 +124,7 @@ public:
     std::map<std::string, std::string> frame_ids_;
     int num_particles_;
     int skip_measure_;
-    
+
     double map_downsample_x_;
     double map_downsample_y_;
     double map_downsample_z_;
@@ -180,5 +183,6 @@ public:
     double expansion_var_pitch_;
     double expansion_var_yaw_;
     double match_ratio_thresh_;
+    double max_z_pose_, min_z_pose_;
 };
 #endif

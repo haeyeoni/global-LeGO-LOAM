@@ -10,9 +10,10 @@ class OdomModel
 public:
     using Ptr = std::shared_ptr<OdomModel>;
 
-    OdomModel(float odom_lin_err_sigma, float odom_ang_err_sigma, float odom_lin_err_tc, float odom_ang_err_tc)
+    OdomModel(float odom_lin_err_sigma, float odom_ang_err_sigma, float odom_lin_err_tc, float odom_ang_err_tc,
+                float max_z_pose, float min_z_pose)
     : odom_lin_err_sigma_(odom_lin_err_sigma), odom_ang_err_sigma_(odom_ang_err_sigma),
-      odom_lin_err_tc_(odom_lin_err_tc), odom_ang_err_tc_(odom_ang_err_tc)
+      odom_lin_err_tc_(odom_lin_err_tc), odom_ang_err_tc_(odom_ang_err_tc), max_z_pose_(max_z_pose), min_z_pose_(min_z_pose)
     {
         std::cout<< "reset odom models"<<std::endl;
     }
@@ -36,9 +37,7 @@ public:
             p.state_.odom_lin_err_ += (diff - relative_translation_); // only noise: rel_translation * noise_ll + relative_angle * noise_al
             
             p.state_.pose_ += p.state_.rot_ * diff;
-            // Added z=0
-            p.state_.pose_.z_ = 0.0;
-
+            p.state_.pose_.z_ = std::max( std::min(p.state_.pose_.z_, max_z_pose_), min_z_pose_ );
             const float yaw_diff = p.state_.noise_la_ * relative_translation_norm_ + p.state_.noise_aa_ * relative_angle_; // angular translation noise in z-axis
             p.state_.rot_ = Quat(Vec3(0.0, 0.0, 1.0), yaw_diff) * p.state_.rot_ * relative_quat_;
             p.state_.rot_.normalize();                                                                     
@@ -60,6 +59,8 @@ public:
         const float odom_ang_err_sigma_;
         const float odom_lin_err_tc_; // Time constant to forget the integral of the translational odometry error
         const float odom_ang_err_tc_; // Time constant to forget the integral of the rotational odometry error
+
+        const float min_z_pose_, max_z_pose_;
 };
 
 #endif

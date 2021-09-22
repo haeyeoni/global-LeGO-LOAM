@@ -140,7 +140,8 @@ public:
         
         // reset particle filter and model 
         pf_.reset(new ParticleFilter<PoseState>(params_.num_particles_, sampling_covariance_)); 
-        odom_model_.reset(new OdomModel(0.0, 0.0, 0.0, 0.0));
+        odom_model_.reset(new OdomModel(params_.odom_lin_err_sigma_, params_.odom_ang_err_sigma_, params_.odom_lin_err_tc_, params_.odom_ang_err_tc_,
+                                        params_.max_z_pose_, params_.min_z_pose_));
         lidar_model_.reset(new LidarModel(params_.num_points_, params_.num_points_global_, params_.max_search_radius_, params_.min_search_radius_, 
                                           params_.clip_near_sq_, params_.clip_far_sq_, params_.clip_z_min_, params_.clip_z_max_,
                                           params_.perform_weighting_ratio_, params_.max_weight_ratio_, params_.max_weight_, params_.normal_search_range_, params_.odom_lin_err_sigma_));
@@ -365,7 +366,7 @@ public:
         
         // 6. Correction Step with Lidar model
         float match_ratio_max = lidar_model_->measureCorrect(pf_, pc_locals, origins);
-        
+        std::cout<<"match ratio: "<< match_ratio_max <<std::endl;
         if (match_ratio_max < params_.match_ratio_thresh_)
         {
             ROS_WARN_THROTTLE(3.0, "Low match ratio. Expansion resetting"); //every 3.0 seconds

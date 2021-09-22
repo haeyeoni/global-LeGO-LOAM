@@ -366,7 +366,7 @@ public:
         
         // 6. Correction Step with Lidar model
         float match_ratio_max = lidar_model_->measureCorrect(pf_, pc_locals, origins);
-        std::cout<<"match ratio: "<< match_ratio_max <<std::endl;
+        // std::cout<<"match ratio: "<< match_ratio_max <<std::endl;
         if (match_ratio_max < params_.match_ratio_thresh_)
         {
             ROS_WARN_THROTTLE(3.0, "Low match ratio. Expansion resetting"); //every 3.0 seconds

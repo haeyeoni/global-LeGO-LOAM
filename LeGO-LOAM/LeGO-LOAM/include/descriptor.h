@@ -198,7 +198,7 @@ public:
 
         std::vector<torch::jit::IValue> inputs;
         inputs.push_back(tensor_image);
-        at::Tensor output = descriptor.forward(inputs).toTensor();
+        const at::Tensor output = descriptor.forward(inputs).toTensor();
         
         return output;
     }
@@ -206,7 +206,6 @@ public:
     void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId)
     { 
         auto output = makeDescriptor(laserCloudIn);
-
         PointType locnet_feature;
         locnet_feature.x = output[0][0].item<float>();
         locnet_feature.y = output[0][1].item<float>();

@@ -84,11 +84,11 @@ target_link_libraries(mapOptimization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Ope
 add_library(transformFusion src/mapping/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_executable(globalLocalization src/localization/globalLocalization.cpp)
-target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM)
+add_library(globalLocalization src/localization/globalLocalization.cpp)
+target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_executable(particleFilter src/localization/particleFilter.cpp)
-target_link_libraries(particleFilter ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
+add_library(particleFilter3D src/localization/particleFilter.cpp)
+target_link_libraries(particleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
 
 
 set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")

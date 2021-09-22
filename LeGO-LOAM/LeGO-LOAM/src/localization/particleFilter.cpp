@@ -11,6 +11,8 @@
 #include <cfloat>
  
 
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
 #include <boost/chrono.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -53,12 +55,14 @@ using PointType = pcl::PointXYZ; // with intensity
 using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
 using Vector = Eigen::Matrix<float, Eigen::Dynamic, 1>;
 
-class particleFilter3D{
+namespace lego_loam
+{
+
+class ParticleFilter3D : public nodelet::Nodelet {
 
 private:
 
     Parameters params_;
-    ros::NodeHandle nh;
     ros::Subscriber subPointCloud;
     ros::Subscriber subInitialize;
     ros::Subscriber subLaserOdometry;
@@ -93,6 +97,8 @@ private:
     // Time
     ros::Time odom_last_time_;
     ros::Time localized_last_;
+    ros::Timer timer1;
+    ros::Timer timer2;
 
     // TF 
     tf2_ros::Buffer tfbuf_;
@@ -102,28 +108,20 @@ private:
     // transform
     Eigen::Affine3f tf_to_cam_ = Eigen::Affine3f::Identity();
 
-    // parameter    
-    double rot_x_, rot_y_, rot_z_;
+    // flag
     size_t cnt_measure_;
-
     bool map_rotated_;
-    double map_roll, map_pitch, map_yaw; 
 
-    double sampling_covariance_;
 public:
-    particleFilter3D():nh("~"), tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false)
-    {   
-        // parameter
-        
-        nh.param("sampling_covariance", sampling_covariance_, 0.1); 
-        nh.param("rot_x", rot_x_, 0.0);
-        nh.param("rot_y", rot_y_, 0.0);
-        nh.param("rot_z", rot_z_, 0.0);
-        nh.param("map_roll", map_roll, 0.0);
-        nh.param("map_pitch", map_pitch, 0.0);
-        nh.param("map_yaw", map_yaw, 0.0);
+    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false) {}
 
-        if (!params_.load(nh))
+    void onInit() 
+    {       
+        ROS_INFO("\033[1;32m---->\033[0m Particle Filter Started.");  
+
+        ros::NodeHandle nh = getNodeHandle();
+		ros::NodeHandle nhp = getPrivateNodeHandle();
+        if (!params_.load(nhp))
         {
             ROS_ERROR("Failed to load parameters");
         }
@@ -139,7 +137,7 @@ public:
         loaded_map = true;
         
         // reset particle filter and model 
-        pf_.reset(new ParticleFilter<PoseState>(params_.num_particles_, sampling_covariance_)); 
+        pf_.reset(new ParticleFilter<PoseState>(params_.num_particles_, params_.sampling_covariance_)); 
         odom_model_.reset(new OdomModel(params_.odom_lin_err_sigma_, params_.odom_ang_err_sigma_, params_.odom_lin_err_tc_, params_.odom_ang_err_tc_,
                                         params_.max_z_pose_, params_.min_z_pose_));
         lidar_model_.reset(new LidarModel(params_.num_points_, params_.num_points_global_, params_.max_search_radius_, params_.min_search_radius_, 
@@ -151,19 +149,21 @@ public:
         
         std::cout<< "reset all models"<<std::endl;    
         // ros subscriber & publisher
-        // subInitialize = nh.subscribe("/initialize_data", 10, &particleFilter3D::handleInitializeData, this);
-        handleInitializeData();
-        subPointCloud = nh.subscribe("/velodyne_points", 10, &particleFilter3D::handlePointCloud, this);
-        subLaserOdometry = nh.subscribe("/laser_odom_to_init", 100, &particleFilter3D::handleLaserOdometry, this);
+        subInitialize = nh.subscribe("/initialize_data", 10, &ParticleFilter3D::handleInitializeData, this);
+        subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);
+        subLaserOdometry = nh.subscribe("/laser_odom_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
 
         pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 5, true);
         pubParticles = nh.advertise<geometry_msgs::PoseArray>("/particles", 100, true);
         pubMapCloud = nh.advertise<sensor_msgs::PointCloud2>("/map_cloud", 2);
         pubTempCloud = nh.advertise<sensor_msgs::PointCloud2>("/transformed_cloud", 10);
         pubTransformedOdometry = nh.advertise<nav_msgs::Odometry> ("/tranformed_odom", 5);        
+    
+        timer1 = nhp.createTimer(ros::Duration(1.0), boost::bind(&ParticleFilter3D::handleMapCloud, this, _1));
+        timer2 = nhp.createTimer(ros::Duration(0.005), boost::bind(&ParticleFilter3D::publishParticles, this, _1));    
     }
 
-    void handleMapCloud()
+    void handleMapCloud(const ros::TimerEvent& event)
     {
         // Downsampling the pointcloud map
         if (!loaded_map)
@@ -179,9 +179,9 @@ public:
         {        
             tf_to_cam_.translation() << 0.0, 0.0, 0.0;
             
-            tf_to_cam_.rotate(Eigen::AngleAxis<float>(map_yaw, Eigen::Vector3f::UnitZ()));
-            tf_to_cam_.rotate(Eigen::AngleAxis<float>(map_pitch, Eigen::Vector3f::UnitY()));
-            tf_to_cam_.rotate(Eigen::AngleAxis<float>(map_roll, Eigen::Vector3f::UnitX()));
+            tf_to_cam_.rotate(Eigen::AngleAxis<float>(params_.map_yaw_, Eigen::Vector3f::UnitZ()));
+            tf_to_cam_.rotate(Eigen::AngleAxis<float>(params_.map_pitch_, Eigen::Vector3f::UnitY()));
+            tf_to_cam_.rotate(Eigen::AngleAxis<float>(params_.map_roll_, Eigen::Vector3f::UnitX()));
 
             pcl::transformPointCloud (*global_map_, *global_map_, tf_to_cam_);
 
@@ -202,7 +202,7 @@ public:
     {
         ROS_INFO_ONCE("odom received");
 
-        tf::Quaternion q_rot = tf::createQuaternionFromRPY(rot_x_, rot_y_, rot_z_);
+        tf::Quaternion q_rot = tf::createQuaternionFromRPY(params_.rot_x_, params_.rot_y_, params_.rot_z_);
 
         tf::Quaternion q_orientation, q_orientation_rot;	
         tf::quaternionMsgToTF(odom_msg->pose.pose.orientation, q_orientation);
@@ -333,7 +333,6 @@ public:
                 return;
             }
         }
-        ROS_INFO_ONCE("Flag1");
     
         // 3. Down sampling the current accumulated point cloud (pc_local_accum)
         const auto ts = boost::chrono::high_resolution_clock::now();
@@ -352,12 +351,10 @@ public:
         const std::vector<PoseState> prev_cov = pf_->covariance(cov_ratio); 
         
         // 5. Random sample with normal distribution
-        ROS_INFO_ONCE("Flag2");
         auto sampler = std::dynamic_pointer_cast<PointCloudSampler<PointType>>(lidar_model_->getSampler());    
         sampler->setParticleStatistics(prev_mean, prev_cov);  
         pc_locals = lidar_model_->filter(pc_local_full); 
-        
-        ROS_INFO_ONCE("Flag3");
+    
         if (pc_locals->size() == 0)
         {
             ROS_ERROR("All points are filtered out.");
@@ -382,12 +379,10 @@ public:
                 params_.resample_var_yaw_)));
         pf_-> updateNoise(params_.odom_err_lin_lin_, params_.odom_err_lin_ang_,
                         params_.odom_err_ang_lin_, params_.odom_err_ang_ang_);
-        publishParticles();
 
         auto biased_mean = pf_->biasedMean(odom_prev_, params_.num_particles_, params_.bias_var_dist_, params_.bias_var_ang_); 
         biased_mean.rot_.normalize();
 
-        ROS_INFO_ONCE("Flag4");
         assert(std::isfinite(biased_mean.pose_.x_) && std::isfinite(biased_mean.pose_.y_) && std::isfinite(biased_mean.pose_.z_) &&
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
         
@@ -400,37 +395,26 @@ public:
         if (dt > 1.0) dt = 1.0;
         else if ( dt < 0.0) dt = 0.0;
         localized_last_ = localized_current;   
-
-        ROS_INFO_ONCE("Flag5");    
         Vec3 map_pose = biased_mean.pose_ - biased_mean.rot_.inv() * odom_.pose_;
         Quat map_rot = biased_mean.rot_ * odom_.rot_.inv();
         
     }
 
-    // void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
-    void handleInitializeData()
-    {
-        //Temp
-        std::vector<float> poseData(3*10, 0); // maximum 10 candidates
-        poseData[0] = 0.0;
-        poseData[1] = 0.0;
-        poseData[2] = 1.0;
-        
+    void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
+    {  
 
-        // int length = (int) initial_msg->layout.dim[1].size;
+        int length = (int) initial_msg->layout.dim[1].size;
             
-        // if(!initialized && length > 0)
-        if(!initialized)
+        if(!initialized && length > 0)
         {
             std::cout<<"**********Initialization************"<<std::endl;
-            // float similaritySum = initial_msg->layout.dim[0].size;
-            // pf_->init(length, similaritySum, initial_msg->data);   
-            pf_->init(1, 1.0, poseData);
+            float similaritySum = initial_msg->layout.dim[0].size;
+            pf_->init(length, similaritySum, initial_msg->data); 
             initialized = true;
         }
     }
 
-    void publishParticles()
+    void publishParticles(const ros::TimerEvent& event)
     {
         if(initialized)
         {
@@ -466,9 +450,6 @@ public:
         trans.child_frame_id = params_.frame_ids_["floor"];
         trans.transform.translation = tf2::toMsg(tf2::Vector3(0.0, 0.0, biased_mean.pose_.z_));
         trans.transform.rotation = tf2::toMsg(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
-
-        //transforms.push_back(trans);
-
         pose.header.stamp = header.stamp;
         pose.header.frame_id = trans.header.frame_id;
         pose.pose.pose.position.x = biased_mean.pose_.x_;
@@ -484,23 +465,6 @@ public:
         pubPose.publish(pose);
     }
 };
-
-
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "lego_loam");
-
-    ROS_INFO("Global Localization Started.");
-    particleFilter3D PF;
-    ros::Rate rate(200);
-    while (ros::ok())
-    {
-        ros::spinOnce();
-        rate.sleep();
-        PF.handleMapCloud();
-        PF.publishParticles();
-    }
-
-    return 0;
 }
 
+PLUGINLIB_EXPORT_CLASS(lego_loam::ParticleFilter3D, nodelet::Nodelet)

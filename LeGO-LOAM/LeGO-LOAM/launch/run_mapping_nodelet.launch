@@ -26,7 +26,7 @@
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
         <param name="model_path" value="c:\opt\ros\melodic\test_ws\src\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
-        <param name="use_descriptor" value="false"/>
+        <param name="use_descriptor" value="true"/>
 	</node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"

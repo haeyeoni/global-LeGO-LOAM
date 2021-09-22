@@ -11,19 +11,28 @@
     <node pkg="tf" type="static_transform_publisher" name="odom_to_base" args="0 0 0 -1.570795 -1.570795 0         /laser_odom /base_link   10" />
     <node pkg="tf" type="static_transform_publisher" name="base_to_velo" args="0 0 0 0 0 0        /base_link /velodyne   10" />
 
+    <node pkg="nodelet" type="nodelet" args="manager"
+    name="legoloam_nodelet_manager" output="screen" />
+	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
+    name="ImageProjection_loader" output="screen">
+    <!-- <remap from="velodyne_points" to="points_raw"/> -->
+    </node>	
+	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
+    name="FeatureAssociation_loader" output="screen"/>
 
-	
     <!--- Initialize -->    
-    <!-- <node pkg="lego_loam" type="globalLocalization"    name="globalLocalization"    output="screen">
+    <node pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager"
+    name="GlobalLocalization_loader" output="screen">
         <param name="model_path" value="c:\opt\ros\melodic\test_ws\src\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
         <param name="feature_cloud_path" value="C:\Users\Haeyeon Kim\Desktop\lego_loam_result\feature_cloud.pcd"/>
         <param name="search_radius" value="1000.0"/>
-    </node> -->
+    </node>
 
-    <!--- Particle filter -->
-    <node pkg="lego_loam" type="particleFilter"    name="particleFilter"    output="screen">
-        <param name="num_particles" value="1000"/>
-        <param name="sampling_covariance" value="0.5"/>
+    <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager"
+    name="ParticleFilter3D_loader" output="screen">
+        <param name="num_particles" value="5000"/>
+        <param name="sampling_covariance" value="0.5"/> <!--Initial convariance-->
+        
         <param name="skip_measure" value="1"/>
         <param name="clip_near" value="2.0"/>
         <param name="clip_far" value="10.0"/>
@@ -49,25 +58,8 @@
         <param name="downsample_x" value="0.1"/>
         <param name="downsample_y" value="0.1"/>
         <param name="downsample_z" value="0.1"/>
-        <param name="match_ratio_thresh" value="0.5"/>
-        
-        <param name="rot_x" value="0.0"/>
-        <param name="rot_y" value="-1.570795"/>
-        <param name="rot_z" value="-1.570795"/>
-
-        <param name="map_yaw" value="1.570795"/>
-        <param name="map_roll" value="1.570795"/>        
+        <param name="match_ratio_thresh" value="0.8"/>     
     </node>
-    
-    <node pkg="nodelet" type="nodelet" args="manager"
-    name="legoloam_nodelet_manager" output="screen" />
-	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
-    name="ImageProjection_loader" output="screen">
-    <!-- <remap from="velodyne_points" to="points_raw"/> -->
-    </node>	
-	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
-    name="FeatureAssociation_loader" output="screen"/>
 
-     
 </launch>
 

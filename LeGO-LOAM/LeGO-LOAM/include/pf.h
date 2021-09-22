@@ -67,7 +67,6 @@ public:
         for (auto& p: particles_)
         {
             p.state_ = gmm_->sample();
-            // p.state_ = PoseState(); // <- set 0 position
             p.probability_ = 1.0 / particles_.size();
         }
         std::cout<<"finish initializing particle filter"<<std::endl;

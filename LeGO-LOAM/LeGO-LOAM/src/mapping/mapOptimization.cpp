@@ -1494,7 +1494,7 @@ public:
             ROS_INFO_ONCE("make and save descriptor features");
             pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
             pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
-            // locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
+            locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
         }
         
         // save keypoint pose

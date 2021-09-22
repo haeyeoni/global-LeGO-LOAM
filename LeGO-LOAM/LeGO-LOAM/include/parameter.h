@@ -17,6 +17,15 @@ public:
     bool load(ros::NodeHandle& pnh)
     {
         ROS_INFO("parameter loading");
+                // parameter        
+        pnh.param("sampling_covariance", sampling_covariance_, 0.1); 
+        pnh.param("rot_x", rot_x_, 0.0);
+        pnh.param("rot_y", rot_y_, -1.570795);
+        pnh.param("rot_z", rot_z_, -1.570795); // for lego loam
+        pnh.param("map_roll", map_roll_, 1.570795);
+        pnh.param("map_pitch", map_pitch_, 0.0);
+        pnh.param("map_yaw", map_yaw_, 1.570795);
+
         pnh.param("num_particles", num_particles_, 64);
         pnh.param("map_frame", frame_ids_["map"], std::string("map"));
         pnh.param("base_frame", frame_ids_["base_link"], std::string("base_link"));
@@ -124,6 +133,10 @@ public:
     std::map<std::string, std::string> frame_ids_;
     int num_particles_;
     int skip_measure_;
+    
+    double rot_x_, rot_y_, rot_z_;
+    double map_roll_, map_pitch_, map_yaw_;
+    double sampling_covariance_;
 
     double map_downsample_x_;
     double map_downsample_y_;

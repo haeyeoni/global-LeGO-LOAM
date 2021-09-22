@@ -2,7 +2,7 @@
     <class name="lego_loam/ImageProjection" type="lego_loam::ImageProjection"
 		base_class_type="nodelet::Nodelet">
 		<description>
-			imageProjection class.
+			ImageProjection class.
 		</description>
 	</class>
 </library>

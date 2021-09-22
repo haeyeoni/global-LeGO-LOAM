@@ -66,6 +66,8 @@
     <nodelet plugin="${prefix}/plugins/imageProjection.xml" />
     <nodelet plugin="${prefix}/plugins/mapOptimization.xml" />
     <nodelet plugin="${prefix}/plugins/transformFusion.xml" />
+    <nodelet plugin="${prefix}/plugins/particleFilter.xml" />
+    <nodelet plugin="${prefix}/plugins/globalLocalization.xml" />
   </export>
 
 </package>

@@ -86,9 +86,9 @@ public:
   };
 
   explicit ChunkedKdtree(
-      const float chunk_length = 20.0,
-      const float max_search_radius = 1.0,
-      const bool keep_clouds = false)
+      float chunk_length = 20.0,
+      float max_search_radius = 1.0,
+      bool keep_clouds = false)
     : pos_to_chunk_(1.0 / chunk_length)
     , chunk_length_(chunk_length)
     , max_search_radius_(max_search_radius)
@@ -96,7 +96,6 @@ public:
     , keep_clouds_(keep_clouds)
   {
     chunks_.clear();
-    std::cout<< "reset tree models"<<std::endl;
   }
   void setEpsilon(const float epsilon)
   {
@@ -201,9 +200,9 @@ public:
       ++i;
     }
     for (auto& cloud : clouds)
-    {
-      if (point_rep_)
-        chunks_[cloud.first].kdtree_->setPointRepresentation(point_rep_);
+    {  
+      // if (point_rep_)
+      //   chunks_[cloud.first].kdtree_->setPointRepresentation(point_rep_);
       if (set_epsilon_)
         chunks_[cloud.first].kdtree_->setEpsilon(epsilon_);
       auto cloud_ptr = cloud.second.makeShared();
@@ -276,9 +275,9 @@ protected:
     }
   };
 
-  const float pos_to_chunk_;
-  const float chunk_length_;
-  const float max_search_radius_;
+  float pos_to_chunk_;
+  float chunk_length_;
+  float max_search_radius_;
   bool set_epsilon_;
   bool keep_clouds_;
   float epsilon_;
@@ -290,4 +289,6 @@ protected:
   ChunkMap chunks_;
   typename pcl::PointCloud<POINT_TYPE>::ConstPtr input_cloud_;
 };
+
+
 #endif  // MCL_3DL_CHUNKED_KDTREE_H

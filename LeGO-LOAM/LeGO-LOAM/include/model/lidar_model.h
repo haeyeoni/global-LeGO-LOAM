@@ -69,6 +69,7 @@ public:
     {
         kdtree_ = kdtree;
     }
+    
     pcl::PointCloud<PointType>::Ptr filter(const pcl::PointCloud<PointType>::Ptr& pc) const
     {
         ROS_DEBUG("lidar filter called");
@@ -106,7 +107,6 @@ public:
         // update particle probability 
     
         NormalLikelihood odom_lin_error_nl(odom_lin_err_sigma_); // generate normal likelihood 
-
         float match_ratio_max = 0.0;
         float likelihood_score, match_ratio, odom_error_likelihood;
         float sum = 0;

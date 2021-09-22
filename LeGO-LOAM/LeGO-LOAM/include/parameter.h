@@ -49,6 +49,7 @@ public:
         pnh.param("init_var_roll", v_roll, 0.1);
         pnh.param("init_var_pitch", v_pitch, 0.1);
         pnh.param("init_var_yaw", v_yaw, 0.5);
+        pnh.param("skip_measure", skip_measure_, 1);
 
         initial_pose_ = PoseState( Vec3(x, y, z), Quat(Vec3(roll, pitch, yaw)));
         initial_pose_std_ = PoseState(Vec3(v_x, v_y, v_z), Quat(Vec3(v_roll, v_pitch, v_yaw)));
@@ -119,6 +120,8 @@ public:
 public:
     std::map<std::string, std::string> frame_ids_;
     int num_particles_;
+    int skip_measure_;
+    
     double map_downsample_x_;
     double map_downsample_y_;
     double map_downsample_z_;

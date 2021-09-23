@@ -17,7 +17,9 @@ public:
     bool load(ros::NodeHandle& pnh)
     {
         ROS_INFO("parameter loading");
-                // parameter        
+                  
+        pnh.param<std::string>("map_save_path", map_save_path_, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
+        
         pnh.param("sampling_covariance", sampling_covariance_, 0.1); 
         pnh.param("rot_x", rot_x_, 0.0);
         pnh.param("rot_y", rot_y_, -1.570795);
@@ -131,6 +133,7 @@ public:
 
 public:
     std::map<std::string, std::string> frame_ids_;
+    std::string map_save_path_;
     int num_particles_;
     int skip_measure_;
     

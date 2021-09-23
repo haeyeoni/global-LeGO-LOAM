@@ -15,7 +15,6 @@ public:
     : odom_lin_err_sigma_(odom_lin_err_sigma), odom_ang_err_sigma_(odom_ang_err_sigma),
       odom_lin_err_tc_(odom_lin_err_tc), odom_ang_err_tc_(odom_ang_err_tc), max_z_pose_(max_z_pose), min_z_pose_(min_z_pose)
     {
-        std::cout<< "reset odom models"<<std::endl;
     }
     
     void setOdoms(const PoseState& odom_prev, const PoseState& odom_current, const float time_diff)

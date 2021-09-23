@@ -128,7 +128,7 @@ public:
 
         // load saved map
         global_map_.reset(new pcl::PointCloud<PointType>());
-        if (pcl::io::loadPCDFile<PointType> ("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd", *global_map_) == -1) //* load the file
+        if (pcl::io::loadPCDFile<PointType> (params_.map_save_path_, *global_map_) == -1) //* load the file
         {
             PCL_ERROR ("Couldn't read pcd \n");
             return;
@@ -147,7 +147,6 @@ public:
         map_kdtree_.reset(new ChunkedKdtree<PointType>(params_.map_chunk_, params_.max_search_radius_));
         map_kdtree_->setEpsilon(params_.map_grid_min_ / 16);
         
-        std::cout<< "reset all models"<<std::endl;    
         // ros subscriber & publisher
         subInitialize = nh.subscribe("/initialize_data", 10, &ParticleFilter3D::handleInitializeData, this);
         subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);

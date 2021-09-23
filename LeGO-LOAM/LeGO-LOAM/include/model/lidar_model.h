@@ -49,7 +49,6 @@ public:
         num_points_default_ = num_points_ = num_points;
         sampler_.reset(new PointCloudSampler<PointType>(perform_weighting_ratio, max_weight_ratio, max_weight, normal_search_range));   
         match_weight_ = 5.0; 
-        std::cout<< "reset lidar models"<<std::endl;
     }
 
     void setParticleNumber(const size_t num_particles, const size_t current_num_particles)

@@ -160,7 +160,7 @@ public:
         pubTransformedOdometry = nh.advertise<nav_msgs::Odometry> ("/tranformed_odom", 5);        
     
         timer1 = nhp.createTimer(ros::Duration(1.0), boost::bind(&ParticleFilter3D::handleMapCloud, this, _1));
-        timer2 = nhp.createTimer(ros::Duration(0.005), boost::bind(&ParticleFilter3D::publishParticles, this, _1));    
+        timer2 = nhp.createTimer(ros::Duration(0.01), boost::bind(&ParticleFilter3D::publishParticles, this, _1));    
     }
 
     void handleMapCloud(const ros::TimerEvent& event)

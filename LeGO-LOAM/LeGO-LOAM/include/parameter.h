@@ -19,6 +19,10 @@ public:
         ROS_INFO("parameter loading");
                   
         pnh.param<std::string>("map_save_path", map_save_path_, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
+        pnh.param("use_initial_pose", use_initial_pose_, false); 
+        pnh.param("initial_x", initial_x_, 0.0); 
+        pnh.param("initial_y", initial_y_, 0.0); 
+        
         
         pnh.param("sampling_covariance", sampling_covariance_, 0.1); 
         pnh.param("rot_x", rot_x_, 0.0);
@@ -137,6 +141,9 @@ public:
     int num_particles_;
     int skip_measure_;
     
+    bool use_initial_pose_;
+    double initial_x_, initial_y_;
+
     double rot_x_, rot_y_, rot_z_;
     double map_roll_, map_pitch_, map_yaw_;
     double sampling_covariance_;

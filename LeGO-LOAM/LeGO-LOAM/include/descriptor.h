@@ -203,7 +203,7 @@ public:
         return output;
     }
 
-    void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId)
+    void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId, std::string feature_cloud_path)
     { 
         auto output = makeDescriptor(laserCloudIn);
         PointType locnet_feature;
@@ -213,7 +213,7 @@ public:
         locnet_feature.intensity = nodeId;
 
         featureCloud->push_back(locnet_feature);    
-        pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_cloud.pcd", *featureCloud);
+        pcl::io::savePCDFileASCII(feature_cloud_path, *featureCloud);
     }   
     
     //// Localization

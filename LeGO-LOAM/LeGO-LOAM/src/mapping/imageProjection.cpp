@@ -83,7 +83,6 @@ private:
 
     uint16_t *queueIndX; // array for breadth-first search process of segmentation, for speed
     uint16_t *queueIndY;
-    bool initialized = false;
 
 public:
     ImageProjection() = default;
@@ -104,17 +103,13 @@ public:
         pubSegmentedCloudPure = nhp.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud_pure", 1);
         pubSegmentedCloudInfo = nhp.advertise<cloud_msgs::cloud_info> ("/segmented_cloud_info", 1);
         pubOutlierCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/outlier_cloud", 1);
-        if (!initialized)
-        {
-            nanPoint.x = std::numeric_limits<float>::quiet_NaN();
-            nanPoint.y = std::numeric_limits<float>::quiet_NaN();
-            nanPoint.z = std::numeric_limits<float>::quiet_NaN();
-            nanPoint.intensity = -1;
-
-            allocateMemory();
-            resetParameters();
-            initialized = true;
-        } 
+        
+        nanPoint.x = std::numeric_limits<float>::quiet_NaN();
+        nanPoint.y = std::numeric_limits<float>::quiet_NaN();
+        nanPoint.z = std::numeric_limits<float>::quiet_NaN();
+        nanPoint.intensity = -1;
+        allocateMemory();
+        resetParameters();            
     }
 
     void allocateMemory(){

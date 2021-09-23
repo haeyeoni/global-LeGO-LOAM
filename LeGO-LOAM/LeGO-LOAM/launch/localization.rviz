@@ -60,7 +60,7 @@ Visualization Manager:
       Axes Radius: 0.009999999776482582
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.07000000029802322
       Head Radius: 0.029999999329447746
       Name: PoseArray
@@ -69,7 +69,7 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /particles
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -250,25 +250,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 78.5030746459961
+      Distance: 159.0805206298828
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 21.14565658569336
-        Y: -5.589148044586182
-        Z: -9.41352367401123
+        X: -10.989436149597168
+        Y: -28.03605842590332
+        Z: 4.092402458190918
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2247966527938843
+      Pitch: 1.0997960567474365
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.5349373817443848
+      Yaw: 0.3367764353752136
     Saved: ~
 Window Geometry:
   Displays:

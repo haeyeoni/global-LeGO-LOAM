@@ -99,6 +99,7 @@ private:
     ros::Time localized_last_;
     ros::Timer timer1;
     ros::Timer timer2;
+    ros::Timer timer3;
 
     // TF 
     tf2_ros::Buffer tfbuf_;
@@ -148,9 +149,14 @@ public:
         map_kdtree_->setEpsilon(params_.map_grid_min_ / 16);
         
         // ros subscriber & publisher
-        subInitialize = nh.subscribe("/initialize_data", 10, &ParticleFilter3D::handleInitializeData, this);
+
+        if (params_.use_initial_pose_)
+            timer3 = nhp.createTimer(ros::Duration(0.1), boost::bind(&ParticleFilter3D::handleInitializeData1, this, _1));
+        else
+            subInitialize = nh.subscribe("/initialize_data", 10, &ParticleFilter3D::handleInitializeData, this);
+
         subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);
-        subLaserOdometry = nh.subscribe("/laser_odom_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
+        subLaserOdometry = nh.subscribe("/integrated_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
 
         pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 5, true);
         pubParticles = nh.advertise<geometry_msgs::PoseArray>("/particles", 100, true);
@@ -401,7 +407,6 @@ public:
 
     void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
     {  
-
         int length = (int) initial_msg->layout.dim[1].size;
             
         if(!initialized && length > 0)
@@ -409,6 +414,21 @@ public:
             std::cout<<"**********Initialization************"<<std::endl;
             float similaritySum = initial_msg->layout.dim[0].size;
             pf_->init(length, similaritySum, initial_msg->data); 
+            initialized = true;
+        }
+    }
+
+    void handleInitializeData1(const ros::TimerEvent& event)
+    {  
+        std::vector<float> pose; // x pose, y pose, similarity term
+        pose.push_back(params_.initial_x_);
+        pose.push_back(params_.initial_y_);
+        pose.push_back(1.0);        
+        
+        if(!initialized)
+        {
+            std::cout<<"**********Initialization************"<<std::endl;
+            pf_->init(1, 1.0, pose);
             initialized = true;
         }
     }

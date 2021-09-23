@@ -228,11 +228,12 @@ private:
     
     //haeyeon
     LocNetManager *locnetManager;
-    string model_path, map_save_path, key_pose_path;
+    string model_path, map_save_path, key_pose_path, feature_cloud_path;
     bool use_descriptor = false;
     ros::Subscriber subLaserCloudRaw;
     pcl::PointCloud<PointType>::Ptr laserCloudRaw;
     pcl::PointCloud<PointType>::Ptr cloudOutStack; 
+    bool mapping = true;
 
 public:
     MapOptimization() = default;
@@ -248,8 +249,11 @@ public:
         nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
         nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
         nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
+        nhp.param<std::string>("feature_cloud_path", feature_cloud_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_cloud.pcd"); 
         nhp.param<bool>("use_descriptor", use_descriptor, "false");        
-        locnetManager->loadModel(model_path);
+        nhp.param<bool>("mapping", mapping, "true");     
+        if(mapping)   
+            locnetManager->loadModel(model_path);
         subLaserCloudRaw = nhp.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &MapOptimization::laserCloudRawHandler, this);   
         //
         
@@ -749,7 +753,7 @@ public:
             pubRegisteredCloud.publish(cloudMsgTemp);            	    
             // Haeyeon: save map
             *cloudOutStack += *cloudOut;
-            if(cloudOutStack->size() != 0)
+            if(cloudOutStack->size() != 0 && mapping)
             {
                 ROS_INFO_ONCE(" Saving Map ... ");
                 pcl::io::savePCDFileASCII(map_save_path, *cloudOutStack);
@@ -1492,18 +1496,21 @@ public:
         
         // ** Haeyeon **
         // Descriptor LocNet
-        if (use_descriptor)
+        if (mapping)
         {
-            ROS_INFO_ONCE("make and save descriptor features");
-            pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
-            pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
-            locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
+            
+            if (use_descriptor)
+            {
+                ROS_INFO_ONCE("make and save descriptor features");
+                pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
+                pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
+                locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size(), feature_cloud_path);
+            }
+            
+            // save keypoint pose
+            std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
+            pcl::io::savePCDFileASCII(key_pose_path, *cloudKeyPoses3D);
         }
-        
-        // save keypoint pose
-        std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
-        pcl::io::savePCDFileASCII(key_pose_path, *cloudKeyPoses3D);
-        
     }
 
     void correctPoses(){
@@ -1566,8 +1573,8 @@ public:
                 correctPoses();
 
                 publishTF();
-
-                publishKeyPosesAndFrames();
+                if (mapping)
+                    publishKeyPosesAndFrames();
 
                 clearCloud();
             }

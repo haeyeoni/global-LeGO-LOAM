@@ -3,8 +3,8 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
-    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
-    <arg name="feature_cloud_path" default="C:\Users\Haeyeon Kim\Desktop\lego_loam_result\kitti_feature_cloud.pcd"/>
+    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
+    <arg name="feature_cloud_path" default="C:\\Users\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_cloud.pcd"/>
     <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_key_poses.pcd"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_lego_loam_map.pcd"/>
 
@@ -20,9 +20,9 @@
     name="legoloam_nodelet_manager" output="screen" />
 
 	<!-- $ rosrun nodelet nodelet load sample_nodelet/SampleNodeletClass sample_nodelet_manager __name:=SampleNodeletClass_loader-->
+    <remap from="velodyne_points" to="points_raw"/>
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
     name="ImageProjection_loader" output="screen">
-        <remap from="velodyne_points" to="points_raw"/>
     </node>
 	
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"

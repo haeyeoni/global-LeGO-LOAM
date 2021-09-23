@@ -228,7 +228,7 @@ private:
     
     //haeyeon
     LocNetManager *locnetManager;
-    string model_path;
+    string model_path, map_save_path;
     bool use_descriptor = false;
     ros::Subscriber subLaserCloudRaw;
     pcl::PointCloud<PointType>::Ptr laserCloudRaw;
@@ -245,11 +245,14 @@ public:
         
         // haeyeon: LOADING MODEL
         locnetManager = new LocNetManager();
-        nhp.param<std::string>("model_path", model_path, "c:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
-        nhp.param<bool>("use_descriptor", use_descriptor, "false");         
+        nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
+        nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
+        nhp.param<std::string>("key_pose_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
+        nhp.param<bool>("use_descriptor", use_descriptor, "false");        
         locnetManager->loadModel(model_path);
         subLaserCloudRaw = nhp.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &MapOptimization::laserCloudRawHandler, this);   
         //
+        
     	ISAM2Params parameters;
 		parameters.relinearizeThreshold = 0.01;
 		parameters.relinearizeSkip = 1;
@@ -749,7 +752,7 @@ public:
             if(cloudOutStack->size() != 0)
             {
                 ROS_INFO_ONCE(" Saving Map ... ");
-                pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd", *cloudOutStack);
+                pcl::io::savePCDFileASCII(map_save_path, *cloudOutStack);
             }
 
         } 
@@ -1499,7 +1502,7 @@ public:
         
         // save keypoint pose
         std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
-        pcl::io::savePCDFileASCII("C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd", *cloudKeyPoses3D);
+        pcl::io::savePCDFileASCII(key_pose_path, *cloudKeyPoses3D);
         
     }
 

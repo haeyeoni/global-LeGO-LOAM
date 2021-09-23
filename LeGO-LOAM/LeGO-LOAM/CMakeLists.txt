@@ -92,7 +92,6 @@ target_link_libraries(particleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Op
 
 
 set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
-set(CUDA_TOOLKIT_ROOT_DIR "C:/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v11.4")
 find_package(Torch REQUIRED)
 
 target_link_libraries(mapOptimization "${TORCH_LIBRARIES}")

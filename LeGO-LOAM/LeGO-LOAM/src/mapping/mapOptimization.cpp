@@ -228,7 +228,7 @@ private:
     
     //haeyeon
     LocNetManager *locnetManager;
-    string model_path, map_save_path;
+    string model_path, map_save_path, key_pose_path;
     bool use_descriptor = false;
     ros::Subscriber subLaserCloudRaw;
     pcl::PointCloud<PointType>::Ptr laserCloudRaw;
@@ -247,7 +247,7 @@ public:
         locnetManager = new LocNetManager();
         nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
         nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
-        nhp.param<std::string>("key_pose_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
+        nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
         nhp.param<bool>("use_descriptor", use_descriptor, "false");        
         locnetManager->loadModel(model_path);
         subLaserCloudRaw = nhp.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &MapOptimization::laserCloudRawHandler, this);   

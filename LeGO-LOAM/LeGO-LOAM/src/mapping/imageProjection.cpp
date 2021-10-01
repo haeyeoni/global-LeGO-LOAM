@@ -84,6 +84,12 @@ private:
     uint16_t *queueIndX; // array for breadth-first search process of segmentation, for speed
     uint16_t *queueIndY;
 
+    // Haeyeon
+    std::vector<float> current_pose(3); // x y z
+    int skip = 0;
+    int cnt_image = 0;
+    ofstream writeFile("lego_loam_pose.txt".data())
+    
 public:
     ImageProjection() = default;
     virtual void onInit()
@@ -104,12 +110,22 @@ public:
         pubSegmentedCloudInfo = nhp.advertise<cloud_msgs::cloud_info> ("/segmented_cloud_info", 1);
         pubOutlierCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/outlier_cloud", 1);
         
+        // Haeyeon add odometry subscriber
+        subPose = nhp.subscribe<nav_msgs::Odometry>("/integrated_to_init", 1, &ImageProjection::updatePose, this);
+        
         nanPoint.x = std::numeric_limits<float>::quiet_NaN();
         nanPoint.y = std::numeric_limits<float>::quiet_NaN();
         nanPoint.z = std::numeric_limits<float>::quiet_NaN();
         nanPoint.intensity = -1;
         allocateMemory();
         resetParameters();            
+    }
+
+    void updatePose(const nav_msgs::Odometry::ConstPtr& odometry)
+    {
+        current_pose[0] = odometry->pose.pose.position.x;
+        current_pose[1] = odometry->pose.pose.position.y;
+        current_pose[2] = odometry->pose.pose.position.z;
     }
 
     void allocateMemory(){
@@ -216,17 +232,33 @@ public:
 
     void projectPointCloud(){
         // range image projection
-        float verticalAngle, horizonAngle, range;
+        // Haeyeon: changed code to save projected 'range image' and 'del range image' for training
+
+        float verticalAngle, horizonAngle, range, prev_range, del_range;
         size_t rowIdn, columnIdn, index, cloudSize; 
         PointType thisPoint;
+        
+        int minDist = 1;
+        int maxDist = 81;
+        int maxDelDist = 41;
 
+        int b = 80;
+        int distBucket, bucket, iCount;
+        
+        cv::Mat imageCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0));
+        cv::Mat imageOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0));
+        
+        cv::Mat imageDelCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0.0));
+        cv::Mat imageDelOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0.0));
+        
         cloudSize = laserCloudIn->points.size();
 
         for (size_t i = 0; i < cloudSize; ++i){
-
             thisPoint.x = laserCloudIn->points[i].x;
             thisPoint.y = laserCloudIn->points[i].y;
             thisPoint.z = laserCloudIn->points[i].z;
+            prev_range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y + thisPoint.z * thisPoint.z);
+        
             // find the row and column index in the iamge for this point
             if (useCloudRing == true){
                 rowIdn = laserCloudInRing->points[i].ring;
@@ -248,6 +280,23 @@ public:
                 continue;
 
             range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y + thisPoint.z * thisPoint.z);
+            distBucket = (maxDist - minDist) / b;
+
+            if (range > minDist && range < maxDist)
+            {
+                for (int i=0; i < b; i ++)
+                    if (range >= (minDist + i * distBucket) && range <= (minDist + (i+1)*distBucket))
+                        bucket = i + 1;
+            }
+            else
+            {
+                bucket = -1;
+            }
+            if (bucket > 0)
+            {
+                iCount = imageCount.at<int>(rowIdn, bucket);
+                imageCount.at<int>(rowIdn, bucket) = iCount + 1;
+            }
             if (range < sensorMinimumRange)
                 continue;
             
@@ -259,9 +308,65 @@ public:
             fullCloud->points[index] = thisPoint;
             fullInfoCloud->points[index] = thisPoint;
             fullInfoCloud->points[index].intensity = range; // the corresponding range of a point is saved as "intensity"
+            
+            // Del image 
+            del_range = fabs(prev_range - range);
+            distBucket = (maxDelDist - minDist) / b;
+            if (del_range > minDist && del_range < maxDelDist)
+            {
+                for (int i=0; i < b; i ++)
+                    if (del_range >= (minDist + i * distBucket) && del_range <= (minDist + (i+1)*distBucket))
+                        bucket = i + 1;
+            }
+            else
+            {
+                bucket = -1;
+            }
+    
+            if (bucket > 0)
+            {
+                iCount = imageDelCount.at<int>(rowIdn, bucket);
+                imageDelCount.at<int>(rowIdn, bucket) = iCount + 1;
+            }
+            prev_range = range;
+        }
+        
+        // Normalize each ring
+        int sumRing, sumDelRing;
+        for (size_t i = 0; i < N_SCAN; ++i){
+            sumRing = 0;
+            sumDelRing = 0;
+
+            for (size_t j = 0; j < b; ++j)
+            {
+                sumRing += imageCount.at<int>(i, j);
+                sumDelRing += imageDelCount.at<int>(i,j);
+            }    
+            
+            for (size_t j = 0; j < b; ++j)
+            {
+                imageOne.at<float>(i, j) = (float) imageCount.at<int>(i, j) / (float) sumRing;
+                imageDelOne.at<float>(i, j) = (float) imageDelCount.at<int>(i, j) / (float) sumDelRing;   
+            }                
+        }
+        cv::flip(imageOne, imageOne, 0);
+        cv::flip(imageDelOne, imageDelOne, 0);     
+
+        cv::Mat merge = cv::Mat(imageOne.size(), CV_32FC2);
+        std::vector<cv::Mat>channels;
+        channels.push_back(imageOne);
+        channels.push_back(imageDelOne);
+        cv::merge(channels, merge);  
+        
+        // save combined image (range + del_range)
+        skip += 1;
+        if skip % 10 == 0:
+        {
+            cv::imwrite("range"+std::to_string(cnt_image)+".jpg", merge);
+            if (writeFile.is_open())
+                writeFile << cnt_img <<" "<< current_pose[0]<<" "<<current_pose[1]<<" "<<current_pose[2]<<"\n";
         }
     }
-
 
     void groundRemoval(){
         size_t lowerInd, upperInd;

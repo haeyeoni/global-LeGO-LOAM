@@ -5,7 +5,7 @@ This repository contains code for a lightweight and ground optimized lidar odome
 [![Watch the video](/LeGO-LOAM/launch/demo.gif)](https://www.youtube.com/watch?v=O3tz_ftHV48)
 -->
 <p align='center'>
-    <img src="/LeGO-LOAM/launch/demo.gif" alt="drawing" width="800"/>
+    <img src="./launch/demo.gif" alt="drawing" width="800"/>
 </p>
 
 ## Lidar-inertial Odometry
@@ -42,19 +42,19 @@ When you compile the code for the first time, you need to add "-j1" behind "catk
 LeGO-LOAM is speficifally optimized for a horizontally placed VLP-16 on a ground vehicle. It assumes there is always a ground plane in the scan. The UGV we are using is Clearpath Jackal. It has a built-in IMU. 
 
 <p align='center'>
-    <img src="/LeGO-LOAM/launch/jackal-label.jpg" alt="drawing" width="400"/>
+    <img src="./launch/jackal-label.jpg" alt="drawing" width="400"/>
 </p>
 
 The package performs segmentation before feature extraction.
 
 <p align='center'>
-    <img src="/LeGO-LOAM/launch/seg-total.jpg" alt="drawing" width="400"/>
+    <img src="./launch/seg-total.jpg" alt="drawing" width="400"/>
 </p>
 
 Lidar odometry performs two-step Levenberg Marquardt optimization to get 6D transformation.
 
 <p align='center'>
-    <img src="/LeGO-LOAM/launch/odometry.jpg" alt="drawing" width="400"/>
+    <img src="./launch/odometry.jpg" alt="drawing" width="400"/>
 </p>
 
 ## New Lidar
@@ -106,10 +106,10 @@ Notes: Though /imu/data is optinal, it can improve estimation accuracy greatly i
 This dataset, [Stevens data-set](https://github.com/TixiaoShan/Stevens-VLP16-Dataset), is captured using a Velodyne VLP-16, which is mounted on an UGV - Clearpath Jackal, on Stevens Institute of Technology campus. The VLP-16 rotation rate is set to 10Hz. This data-set features over 20K scans and many loop-closures. 
 
 <p align='center'>
-    <img src="/LeGO-LOAM/launch/dataset-demo.gif" alt="drawing" width="600"/>
+    <img src="./launch/dataset-demo.gif" alt="drawing" width="600"/>
 </p>
 <p align='center'>
-    <img src="/LeGO-LOAM/launch/google-earth.png" alt="drawing" width="600"/>  
+    <img src="./launch/google-earth.png" alt="drawing" width="600"/>  
 </p>
 
 ## Cite *LeGO-LOAM*

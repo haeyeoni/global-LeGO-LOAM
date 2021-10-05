@@ -21,7 +21,7 @@ In the launch file, you can set map and key pose path. Model is for generating d
 
 * Result map
 <p align='center'>
-    <img src="LeGO-LOAM/LeGO-LOAM/launch/mapping_result.png" alt="drawing" width="400"/>
+    <img src="LeGO-LOAM/launch/mapping_result.png" alt="drawing" width="400"/>
 </p>
 
 
@@ -35,7 +35,7 @@ The argument paths (model_path, feature_cloud_path, key_pose_path, map_save_path
 
 * Result 
 <p align='center'>
-    <img src="LeGO-LOAM/LeGO-LOAM/launch/kitti_localization_new.gif" alt="drawing" width="400"/>
+    <img src="LeGO-LOAM/launch/kitti_localization_new.gif" alt="drawing" width="400"/>
 </p>
 
 

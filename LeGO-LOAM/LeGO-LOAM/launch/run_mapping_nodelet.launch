@@ -26,7 +26,11 @@
     </node>
 	
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
-    name="FeatureAssociation_loader" output="screen"/>
+    name="FeatureAssociation_loader" output="screen">
+        <param name="generate_image" value="true"/>
+        <param name="min_dist" value="1"/>
+        <param name="max_dist" value="81"/>
+    </node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">

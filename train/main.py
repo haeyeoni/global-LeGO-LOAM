@@ -21,7 +21,7 @@ def load_data(num_data):
     tensor_dataset = []
     poses = [] # r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
 
-    image_paths = '../input_img/1528/'
+    image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\'
 
     ## For KITTI Data
     # gt_path = "/home/haeyeon/Cocel/slam_ws/dataset/poses/00.txt" 
@@ -54,9 +54,10 @@ def load_data(num_data):
 
     
     for i in range(num_data):
-        range_i = imageio.imread(image_paths + 'range/%d.png'%(i+1))
-        delta_range_i = imageio.imread(image_paths + 'delta_range/%d.png'%(i+1))
-        data = np.stack([range_i, delta_range_i])
+        range_i = imageio.imread(image_paths + 'range%d.png'%(i+1))
+        # delta_range_i = imageio.imread(image_paths + 'delta_range/%d.png'%(i+1))
+        # data = np.stack([range_i, delta_range_i])
+        data = np.stack(range_i)
         #data_reshape = np.reshape(data, (1,data.shape[0],data.shape[1],data.shape[2])) # N x C x H x W
         
         Tensor = torch.tensor(data).float()

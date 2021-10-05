@@ -35,6 +35,8 @@
 #include "utility.h"
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
+#include <opencv2\highgui\highgui.hpp>
+#include <opencv2\core\core.hpp>
 
 namespace lego_loam
 {
@@ -42,6 +44,7 @@ class ImageProjection : public nodelet::Nodelet {
 private:
 
     ros::Subscriber subLaserCloud;
+    ros::Subscriber subPose;
     
     ros::Publisher pubFullCloud;
     ros::Publisher pubFullInfoCloud;
@@ -85,11 +88,13 @@ private:
     uint16_t *queueIndY;
 
     // Haeyeon
-    std::vector<float> current_pose(3); // x y z
+    std::vector<float> current_pose{0, 0, 0}; // x y z
     int skip = 0;
     int cnt_image = 0;
-    ofstream writeFile("lego_loam_pose.txt".data())
-    
+    bool generate_image = true;
+    std::string savePath = "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\";
+    std::ofstream writeFile; 
+    int min_dist, max_dist;
 public:
     ImageProjection() = default;
     virtual void onInit()
@@ -98,6 +103,11 @@ public:
 
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
+        writeFile.open(savePath + "lego_loam_pose.txt");
+
+        nhp.param<bool>("generate_image", generate_image, "true"); 
+        nhp.param<int>("min_dist", min_dist, 1); 
+        nhp.param<int>("max_dist", max_dist, 150); 
 
         subLaserCloud = nhp.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 1, &ImageProjection::cloudHandler, this);
 
@@ -180,7 +190,10 @@ public:
         std::fill(fullInfoCloud->points.begin(), fullInfoCloud->points.end(), nanPoint);
     }
 
-    ~ImageProjection(){}
+    ~ImageProjection()
+    {
+        writeFile.close();
+    }
 
     void copyPointCloud(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg){
 
@@ -237,10 +250,6 @@ public:
         float verticalAngle, horizonAngle, range, prev_range, del_range;
         size_t rowIdn, columnIdn, index, cloudSize; 
         PointType thisPoint;
-        
-        int minDist = 1;
-        int maxDist = 81;
-        int maxDelDist = 41;
 
         int b = 80;
         int distBucket, bucket, iCount;
@@ -248,16 +257,12 @@ public:
         cv::Mat imageCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0));
         cv::Mat imageOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0));
         
-        cv::Mat imageDelCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0.0));
-        cv::Mat imageDelOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0.0));
-        
         cloudSize = laserCloudIn->points.size();
 
         for (size_t i = 0; i < cloudSize; ++i){
             thisPoint.x = laserCloudIn->points[i].x;
             thisPoint.y = laserCloudIn->points[i].y;
             thisPoint.z = laserCloudIn->points[i].z;
-            prev_range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y + thisPoint.z * thisPoint.z);
         
             // find the row and column index in the iamge for this point
             if (useCloudRing == true){
@@ -280,12 +285,12 @@ public:
                 continue;
 
             range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y + thisPoint.z * thisPoint.z);
-            distBucket = (maxDist - minDist) / b;
+            distBucket = (max_dist - min_dist) / b;
 
-            if (range > minDist && range < maxDist)
+            if (range > min_dist && range < max_dist)
             {
                 for (int i=0; i < b; i ++)
-                    if (range >= (minDist + i * distBucket) && range <= (minDist + (i+1)*distBucket))
+                    if (range >= (min_dist + i * distBucket) && range <= (min_dist + (i+1)*distBucket))
                         bucket = i + 1;
             }
             else
@@ -296,6 +301,7 @@ public:
             {
                 iCount = imageCount.at<int>(rowIdn, bucket);
                 imageCount.at<int>(rowIdn, bucket) = iCount + 1;
+                std::cout<<rowIdn<<" "<<bucket<<" "<< imageCount.at<int>(rowIdn, bucket)<<std::endl;
             }
             if (range < sensorMinimumRange)
                 continue;
@@ -308,63 +314,31 @@ public:
             fullCloud->points[index] = thisPoint;
             fullInfoCloud->points[index] = thisPoint;
             fullInfoCloud->points[index].intensity = range; // the corresponding range of a point is saved as "intensity"
-            
-            // Del image 
-            del_range = fabs(prev_range - range);
-            distBucket = (maxDelDist - minDist) / b;
-            if (del_range > minDist && del_range < maxDelDist)
-            {
-                for (int i=0; i < b; i ++)
-                    if (del_range >= (minDist + i * distBucket) && del_range <= (minDist + (i+1)*distBucket))
-                        bucket = i + 1;
-            }
-            else
-            {
-                bucket = -1;
-            }
-    
-            if (bucket > 0)
-            {
-                iCount = imageDelCount.at<int>(rowIdn, bucket);
-                imageDelCount.at<int>(rowIdn, bucket) = iCount + 1;
-            }
-            prev_range = range;
         }
         
         // Normalize each ring
-        int sumRing, sumDelRing;
+        int sumRing;
         for (size_t i = 0; i < N_SCAN; ++i){
             sumRing = 0;
-            sumDelRing = 0;
 
             for (size_t j = 0; j < b; ++j)
             {
                 sumRing += imageCount.at<int>(i, j);
-                sumDelRing += imageDelCount.at<int>(i,j);
-            }    
-            
+            }                
             for (size_t j = 0; j < b; ++j)
             {
                 imageOne.at<float>(i, j) = (float) imageCount.at<int>(i, j) / (float) sumRing;
-                imageDelOne.at<float>(i, j) = (float) imageDelCount.at<int>(i, j) / (float) sumDelRing;   
             }                
         }
         cv::flip(imageOne, imageOne, 0);
-        cv::flip(imageDelOne, imageDelOne, 0);     
-
-        cv::Mat merge = cv::Mat(imageOne.size(), CV_32FC2);
-        std::vector<cv::Mat>channels;
-        channels.push_back(imageOne);
-        channels.push_back(imageDelOne);
-        cv::merge(channels, merge);  
-        
         // save combined image (range + del_range)
         skip += 1;
-        if skip % 10 == 0:
+        if (generate_image && skip % 10 == 0) 
         {
-            cv::imwrite("range"+std::to_string(cnt_image)+".jpg", merge);
-            if (writeFile.is_open())
-                writeFile << cnt_img <<" "<< current_pose[0]<<" "<<current_pose[1]<<" "<<current_pose[2]<<"\n";
+            cnt_image += 1;
+            std::cout<<"saving image " <<cnt_image<<std::endl;
+            cv::imwrite(savePath + "range"+std::to_string(cnt_image)+".jpg", imageOne);
+            writeFile << cnt_image <<" "<< current_pose[0]<<" "<<current_pose[1]<<" "<<current_pose[2]<<"\n";
         }
     }
 

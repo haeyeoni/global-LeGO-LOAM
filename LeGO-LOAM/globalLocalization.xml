@@ -1,0 +1,8 @@
+<library path="lib/libGlobalLocalization">
+    <class name="lego_loam/GlobalLocalization" type="lego_loam::GlobalLocalization"
+		base_class_type="nodelet::Nodelet">
+		<description>
+			GlobalLocalization class.
+		</description>
+	</class>
+</library>

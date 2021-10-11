@@ -1,0 +1,8 @@
+<library path="lib/libMapOptimization">
+    <class name="lego_loam/MapOptimization" type="lego_loam::MapOptimization"
+		base_class_type="nodelet::Nodelet">
+		<description>
+			MapOptimization class.
+		</description>
+	</class>
+</library>

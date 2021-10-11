@@ -1,0 +1,8 @@
+<library path="lib/libTransformFusion">
+    <class name="lego_loam/TransformFusion" type="lego_loam::TransformFusion"
+		base_class_type="nodelet::Nodelet">
+		<description>
+			MapOptimization class.
+		</description>
+	</class>
+</library>

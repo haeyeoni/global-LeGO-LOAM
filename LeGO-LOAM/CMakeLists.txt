@@ -51,6 +51,9 @@ catkin_package(
   DEPENDS PCL
 )
 
+set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
+find_package(Torch REQUIRED)
+
 include_directories(
 	include
 	${catkin_INCLUDE_DIRS}
@@ -70,29 +73,32 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
-add_library(imageProjection src/mapping/imageProjection.cpp)
-add_dependencies(imageProjection ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
-target_link_libraries(imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(featureAssociation src/mapping/featureAssociation.cpp)
-add_dependencies(featureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
-target_link_libraries(featureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(ImageProjection src/mapping/imageProjection.cpp)
+add_dependencies(ImageProjection ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
+target_link_libraries(ImageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(mapOptimization src/mapping/mapOptimization.cpp)
-target_link_libraries(mapOptimization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM )
+add_library(FeatureAssociation src/mapping/featureAssociation.cpp)
+add_dependencies(FeatureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
+target_link_libraries(FeatureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(transformFusion src/mapping/transformFusion.cpp)
-target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(MapOptimization src/mapping/mapOptimization.cpp)
+target_link_libraries(MapOptimization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM "${TORCH_LIBRARIES}")
 
-add_library(globalLocalization src/localization/globalLocalization.cpp)
-target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(TransformFusion src/mapping/transformFusion.cpp)
+target_link_libraries(TransformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(particleFilter3D src/localization/particleFilter.cpp)
-target_link_libraries(particleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
+add_library(GlobalLocalization src/localization/globalLocalization.cpp)
+target_link_libraries(GlobalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
+add_library(ParticleFilter3D src/localization/particleFilter.cpp)
+target_link_libraries(ParticleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES}"${TORCH_LIBRARIES}")
 
-set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
-find_package(Torch REQUIRED)
-
-target_link_libraries(mapOptimization "${TORCH_LIBRARIES}")
-target_link_libraries(globalLocalization "${TORCH_LIBRARIES}")
+if (MSVC)
+  file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+  add_custom_command(TARGET MapOptimization
+                     POST_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     ${TORCH_DLLS}
+                     $<TARGET_FILE_DIR:MapOptimization>)
+endif (MSVC)

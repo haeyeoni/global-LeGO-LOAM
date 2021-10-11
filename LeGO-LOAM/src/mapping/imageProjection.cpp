@@ -301,7 +301,7 @@ public:
             {
                 iCount = imageCount.at<int>(rowIdn, bucket);
                 imageCount.at<int>(rowIdn, bucket) = iCount + 1;
-                std::cout<<rowIdn<<" "<<bucket<<" "<< imageCount.at<int>(rowIdn, bucket)<<std::endl;
+                // <<rowIdn<<" "<<bucket<<" "<< imageCount.at<int>(rowIdn, bucket)<<std::endl;
             }
             if (range < sensorMinimumRange)
                 continue;
@@ -336,7 +336,7 @@ public:
         if (generate_image && skip % 10 == 0) 
         {
             cnt_image += 1;
-            std::cout<<"saving image " <<cnt_image<<std::endl;
+            // std::cout<<"saving image " <<cnt_image<<std::endl;
             cv::imwrite(savePath + "range"+std::to_string(cnt_image)+".jpg", imageOne);
             writeFile << cnt_image <<" "<< current_pose[0]<<" "<<current_pose[1]<<" "<<current_pose[2]<<"\n";
         }

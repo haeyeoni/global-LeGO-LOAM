@@ -4,7 +4,7 @@
     <arg name="feature_cloud_path" default="C:\Users\Haeyeon Kim\Desktop\lego_loam_result\feature_cloud.pcd"/>
     <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"/>    
-    <arg name="use_initial_pose" default="true"/>
+    <arg name="use_initial_pose" default="false"/>
     
     <!--- Realtime Setting-->
     <arg name="realtime" default="false"/>

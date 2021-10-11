@@ -351,7 +351,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 48
+      Max Intensity: 109
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: Trajectory
@@ -459,8 +459,8 @@ Visualization Manager:
     - Alpha: 0.5
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 1.1529127359390259
-        Min Value: -3.6331663131713867
+        Max Value: 28.846065521240234
+        Min Value: -3.7888946533203125
         Value: true
       Axis: Y
       Channel Name: intensity
@@ -567,7 +567,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -583,7 +583,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /laser_odom_to_init
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -634,16 +634,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 112.70263671875
+      Distance: 222.4550323486328
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -59.21765899658203
-        Y: -10.268533706665039
-        Z: 1.3391798734664917
+        X: 1.6195200681686401
+        Y: -21.286231994628906
+        Z: 1.2868074178695679
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

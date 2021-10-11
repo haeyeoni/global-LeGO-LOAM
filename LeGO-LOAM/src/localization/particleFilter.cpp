@@ -413,7 +413,7 @@ public:
         {
             std::cout<<"**********Initialization************"<<std::endl;
             float similaritySum = initial_msg->layout.dim[0].size;
-            pf_->init(length, similaritySum, initial_msg->data); 
+            pf_->init(length, similaritySum, initial_msg->data, params_.initial_yaw_); 
             initialized = true;
         }
     }
@@ -428,7 +428,7 @@ public:
         if(!initialized)
         {
             std::cout<<"**********Initialization************"<<std::endl;
-            pf_->init(1, 1.0, pose);
+            pf_->init(1, 1.0, pose, params_.initial_yaw_);
             initialized = true;
         }
     }

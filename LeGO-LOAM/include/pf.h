@@ -59,10 +59,10 @@ public:
         gmm_.reset(new GaussianMixture<PoseState>(sampling_covariance));        
     }
 
-    void init(int length, float similaritySum, std::vector<float> poses)
+    void init(int length, float similaritySum, std::vector<float> poses, double init_yaw)
     {
         std::cout<<"initializing particle filter"<<std::endl;
-        gmm_->setDistribution(length, similaritySum, poses);
+        gmm_->setDistribution(length, similaritySum, poses, init_yaw);
 
         for (auto& p: particles_)
         {

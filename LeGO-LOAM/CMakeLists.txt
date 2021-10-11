@@ -91,8 +91,8 @@ add_library(particleFilter3D src/localization/particleFilter.cpp)
 target_link_libraries(particleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
 
 
-set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/Downloads/libtorch")
+set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
 find_package(Torch REQUIRED)
 
-# target_link_libraries(mapOptimization "${TORCH_LIBRARIES}")
+target_link_libraries(mapOptimization "${TORCH_LIBRARIES}")
 target_link_libraries(globalLocalization "${TORCH_LIBRARIES}")

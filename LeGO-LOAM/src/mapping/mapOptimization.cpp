@@ -46,7 +46,7 @@
 #include <gtsam/nonlinear/Values.h>
 
 #include <gtsam/nonlinear/ISAM2.h>
-// #include "descriptor.h" 
+#include "descriptor.h" 
 
 using namespace gtsam;
 
@@ -227,7 +227,7 @@ private:
 
     
     //haeyeon
-    // LocNetManager *locnetManager;
+    LocNetManager *locnetManager;
     string model_path, map_save_path, key_pose_path, feature_cloud_path;
     bool use_descriptor = false;
     ros::Subscriber subLaserCloudRaw;
@@ -245,15 +245,15 @@ public:
 		ros::NodeHandle nhp = getPrivateNodeHandle();
         
         // haeyeon: LOADING MODEL
-        // locnetManager = new LocNetManager();
+        locnetManager = new LocNetManager();
         nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
         nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
         nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
         nhp.param<std::string>("feature_cloud_path", feature_cloud_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_cloud.pcd"); 
         nhp.param<bool>("use_descriptor", use_descriptor, "false");        
         nhp.param<bool>("mapping", mapping, "true");     
-        // if(mapping)   
-        //     locnetManager->loadModel(model_path);
+        if(mapping)   
+            locnetManager->loadModel(model_path);
         subLaserCloudRaw = nhp.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &MapOptimization::laserCloudRawHandler, this);   
         //
         
@@ -1504,7 +1504,7 @@ public:
                 ROS_INFO_ONCE("make and save descriptor features");
                 pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
                 pcl::copyPointCloud(*laserCloudRaw,  *thisRawCloudKeyFrame);
-                // locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size(), feature_cloud_path);
+                locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size(), feature_cloud_path);
             }
             
             // save keypoint pose

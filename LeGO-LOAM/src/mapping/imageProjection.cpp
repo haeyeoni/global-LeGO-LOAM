@@ -90,9 +90,10 @@ private:
     // Haeyeon
     std::vector<float> current_pose{0, 0, 0}; // x y z
     int skip = 0;
+    int skip_generate;
     int cnt_image = 0;
     bool generate_image = true;
-    std::string savePath = "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\";
+    std::string savePath;
     std::ofstream writeFile; 
     int min_dist, max_dist;
 public:
@@ -103,12 +104,14 @@ public:
 
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
-        writeFile.open(savePath + "lego_loam_pose.txt");
 
         nhp.param<bool>("generate_image", generate_image, "true"); 
+        nhp.param<std::string>("savePath", savePath, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\"); 
         nhp.param<int>("min_dist", min_dist, 1); 
-        nhp.param<int>("max_dist", max_dist, 150); 
+        nhp.param<int>("max_dist", max_dist, 81); 
+        nhp.param<int>("skip_generate", skip_generate, 5); 
 
+        writeFile.open(savePath + "lego_loam_pose.txt");
         subLaserCloud = nhp.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 1, &ImageProjection::cloudHandler, this);
 
         pubFullCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/full_cloud_projected", 1);
@@ -327,13 +330,13 @@ public:
             }                
             for (size_t j = 0; j < b; ++j)
             {
-                imageOne.at<float>(i, j) = (float) imageCount.at<int>(i, j) / (float) sumRing;
+                imageOne.at<float>(i, j) = (float) imageCount.at<int>(i, j) / (float) sumRing * 255.0;
             }                
         }
         cv::flip(imageOne, imageOne, 0);
         // save combined image (range + del_range)
         skip += 1;
-        if (generate_image && skip % 10 == 0) 
+        if (generate_image && skip % skip_generate == 0) 
         {
             cnt_image += 1;
             // std::cout<<"saving image " <<cnt_image<<std::endl;

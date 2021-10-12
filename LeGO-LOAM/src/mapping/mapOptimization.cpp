@@ -1508,7 +1508,7 @@ public:
             }
             
             // save keypoint pose
-            std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
+            // std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
             pcl::io::savePCDFileASCII(key_pose_path, *cloudKeyPoses3D);
         }
     }

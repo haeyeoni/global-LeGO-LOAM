@@ -2,7 +2,6 @@ import torch
 import imageio
 import glob
 import numpy as np
-import math
 from torch.optim import lr_scheduler
 import torch.optim as optim
 
@@ -17,49 +16,26 @@ dist_thresh = 2
 margin = 100
 save_name = "./locnet_descriptor"
 
-def load_data(num_data):
+def load_data():
     tensor_dataset = []
-    poses = [] # r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
-
+    poses = [] # tx ty
     image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\'
-
-    ## For KITTI Data
-    # gt_path = "/home/haeyeon/Cocel/slam_ws/dataset/poses/00.txt" 
-    # f = open(gt_path, "r")
-    # while True:
-    #     line = f.readline()
-    #     if not line: break
-    #     data = line.split()
-    #     xy_poses = [float(data[3]), float(data[7])]
-    #     poses.append(xy_poses)
-    # f.close()
-
-    ## For VLP 16 Data
-    gt_path = "../gt/1528/key_gt.txt" 
+    gt_path = image_paths + "lego_loam_pose.txt" 
     f = open(gt_path, "r")
     while True:
         line = f.readline()
         if not line: break
-
-        if line[0] == 'x':
-            data = line.split()
-            x = float(data[-1])
-            next_line = f.readline()
-            data = next_line.split()
-            y = float(data[-1])
-            xy_poses = [x, y]
-            poses.append(xy_poses)
-
+        n, x, y, z = map(float, line.split())
+        poses.append([int(n), x, y])
+        # if int(n) == num_data: break
     f.close()
-
     
-    for i in range(num_data):
-        range_i = imageio.imread(image_paths + 'range%d.png'%(i+1))
+    for i in range(int(n)):
+        range_i = imageio.imread(image_paths + 'range%d.jpg'%(i+1))
         # delta_range_i = imageio.imread(image_paths + 'delta_range/%d.png'%(i+1))
         # data = np.stack([range_i, delta_range_i])
         data = np.stack(range_i)
-        #data_reshape = np.reshape(data, (1,data.shape[0],data.shape[1],data.shape[2])) # N x C x H x W
-        
+        #data_reshape = np.reshape(data, (1,data.shape[0],data.shape[1],data.shape[2])) # N x C x H x W        
         Tensor = torch.tensor(data).float()
         tensor_dataset.append(Tensor)
     return tensor_dataset, poses
@@ -107,7 +83,6 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval):
             data = tuple(d.cuda() for d in data)
             if target is not None:
                 target = target.cuda()
-
 
         optimizer.zero_grad()
         outputs = model(*data)
@@ -185,12 +160,12 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
     return val_loss
 
 if __name__ == '__main__':
-    dataset, poses = load_data(319)
-    train_dataset = SiameseDataset(dataset, True, poses)
-    test_dataset = SiameseDataset(dataset, False, poses)
+    dataset, poses = load_data()
+    train_dataset = SiameseDataset(dataset, True, poses, dist_thresh)
+    test_dataset = SiameseDataset(dataset, False, poses, dist_thresh)
 
-    batch_size = 64
-    kwargs = {'num_workers': 2, 'pin_memory': False} if cuda else {}
+    batch_size = 32
+    kwargs = {'num_workers': 3, 'pin_memory': True} if cuda else {}
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
@@ -208,10 +183,3 @@ if __name__ == '__main__':
     n_epochs = 100000
     log_interval = 100    
     fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
-
-    # # with torch.no_grad() :
-    # if cuda:
-    #     input_data = dataset[0].reshape([1,2,64, 80])
-    #     input_data.to(device)
-    #     # torch.jit.save(torch.jit.trace(embedding_model), save_name)
- 

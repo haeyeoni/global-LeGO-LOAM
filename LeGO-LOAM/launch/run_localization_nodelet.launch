@@ -36,15 +36,14 @@
     </node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager" name="ParticleFilter3D_loader" output="screen">
-        <param name="map_save_path" value="$(arg map_save_path)"/>        
-        <param name="use_initial_pose" value="$(arg use_initial_pose)"/>
-            <param name="initial_x" value="0.0"/>
-            <param name="initial_y" value="0.0"/>
-            <param name="init_yaw" value="3.141592"/>
-            
         <param name="rot_x" value="0.0"/>
         <param name="rot_y" value="1.570795"/>
         <param name="rot_z" value="1.570795"/>
+        <param name="map_save_path" value="$(arg map_save_path)"/>        
+        <param name="use_initial_pose" value="$(arg use_initial_pose)"/>
+        <param name="initial_x" value="0.0"/>
+        <param name="initial_y" value="0.0"/>
+        <param name="init_yaw" value="3.141592"/>
         <param name="num_particles" value="1000"/>
         <param name="sampling_covariance" value="0.8"/> <!--Initial convariance-->
         

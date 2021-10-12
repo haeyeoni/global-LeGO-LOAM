@@ -1,5 +1,7 @@
 from torch.utils.data import Dataset
 import random
+import math
+import torchvision
 
 class SiameseDataset(Dataset):
     """
@@ -7,7 +9,7 @@ class SiameseDataset(Dataset):
     Test: Creates fixed pairs for testing
     """
 
-    def __init__(self, dataset, train, poses):
+    def __init__(self, dataset, train, poses, dist_thresh):
         self.dataset = dataset
         self.train = train
         self.poses = poses
@@ -18,9 +20,7 @@ class SiameseDataset(Dataset):
             for j in range(len(self.dataset)):
                 if i == j: continue
                 else:
-                    pose_i = round(len(poses)/len(dataset) * i)
-                    pose_j = round(len(poses)/len(dataset) * j)
-                    if math.sqrt(math.pow((poses[pose_i][0] - poses[pose_j][0]), 2) + math.pow((poses[pose_i][1] - poses[pose_j][1]), 2)) < dist_thresh:
+                    if math.pow((poses[i][1] - poses[j][1]), 2) + math.pow((poses[i][2] - poses[j][2]), 2) < dist_thresh * dist_thresh:
                         positive_pairs.append([i,j,1])
                     else: 
                         negative_pairs.append([i,j,0])    
@@ -30,7 +30,7 @@ class SiameseDataset(Dataset):
         negative_pairs = negative_pairs[:len(positive_pairs)]
         
         all_pairs = positive_pairs + negative_pairs
-        split_idx = round(len(all_pairs) * 0.8) 
+        split_idx = round(len(all_pairs) * 0.7) 
         self.train_pairs = all_pairs[:split_idx]
         self.test_pairs = all_pairs[split_idx+1:]
 
@@ -41,7 +41,9 @@ class SiameseDataset(Dataset):
             img1, img2, target = self.test_pairs[index]
         img1 = self.dataset[img1]
         img2 = self.dataset[img2]
-
+        ## normalize data 
+        img1 /= img1.max()
+        img2 /= img1.max()
         return (img1, img2), target
 
     def __len__(self):

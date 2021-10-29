@@ -4,13 +4,11 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
+        - /Status1
         - /TF1/Frames1
         - /Odometry1
         - /Odometry1/Shape1
-        - /Odometry2
-        - /Odometry2/Shape1
-        - /Odometry3
-        - /Odometry3/Shape1
       Splitter Ratio: 0.4959999918937683
     Tree Height: 710
   - Class: rviz/Selection
@@ -351,7 +349,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 109
+      Max Intensity: 52
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: Trajectory
@@ -459,8 +457,8 @@ Visualization Manager:
     - Alpha: 0.5
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 28.846065521240234
-        Min Value: -3.7888946533203125
+        Max Value: 31.721590042114258
+        Min Value: 2.810455799102783
         Value: true
       Axis: Y
       Channel Name: intensity
@@ -534,75 +532,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 100
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 255; 255; 0
-        Head Length: 0.30000001192092896
-        Head Radius: 0.4000000059604645
-        Shaft Length: 2
-        Shaft Radius: 0.20000000298023224
-        Value: Arrow
-      Topic: /aft_mapped_to_init
-      Unreliable: false
-      Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
-      Enabled: false
-      Keep: 100
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 85; 255; 255
-        Head Length: 0.30000001192092896
-        Head Radius: 0.4000000059604645
-        Shaft Length: 2
-        Shaft Radius: 0.20000000298023224
-        Value: Arrow
-      Topic: /laser_odom_to_init
-      Unreliable: false
-      Value: false
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
-      Enabled: true
-      Keep: 100
+      Keep: 10
       Name: Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -617,6 +547,24 @@ Visualization Manager:
         Value: Arrow
       Topic: /integrated_to_init
       Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
       Value: true
   Enabled: true
   Global Options:
@@ -634,25 +582,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 222.4550323486328
+      Distance: 197.36569213867188
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.6195200681686401
-        Y: -21.286231994628906
-        Z: 1.2868074178695679
+        X: -0.3043868839740753
+        Y: 1.2444130182266235
+        Z: 1.9312824010849
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 0.5297968983650208
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 5.543699741363525
+      Yaw: 2.6336793899536133
     Saved: ~
 Window Geometry:
   Displays:

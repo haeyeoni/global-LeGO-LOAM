@@ -1,8 +1,0 @@
-<library path="lib/libFeatureAssociation">
-	<class name="lego_loam/FeatureAssociation" type="lego_loam::FeatureAssociation"
-		base_class_type="nodelet::Nodelet">
-		<description>
-			FeatureAssociation class.
-		</description>
-	</class>
-</library>

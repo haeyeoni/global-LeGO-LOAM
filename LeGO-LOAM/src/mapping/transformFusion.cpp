@@ -45,7 +45,6 @@ private:
     ros::Subscriber subLaserOdometry;
     ros::Subscriber subOdomAftMapped;
   
-
     nav_msgs::Odometry laserOdometry2;
     tf::StampedTransform laserOdometryTrans2;
     tf::TransformBroadcaster tfBroadcaster2;

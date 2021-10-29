@@ -163,6 +163,9 @@ private:
     pcl::VoxelGrid<PointType> downSizeFilterSurroundingKeyPoses; // for surrounding key poses of scan-to-map optimization
     pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyPoses; // for global map visualization
     pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames; // for global map visualization
+    
+    // Haeyeon
+    pcl::VoxelGrid<PointType> downSizeSaveMap; // for saving map
 
     double timeLaserCloudCornerLast;
     double timeLaserCloudSurfLast;
@@ -234,6 +237,9 @@ private:
     pcl::PointCloud<PointType>::Ptr laserCloudRaw;
     pcl::PointCloud<PointType>::Ptr cloudOutStack; 
     bool mapping = true;
+    int map_cnt = 0;
+    int map_skip;
+    double map_voxel;
 
 public:
     MapOptimization() = default;
@@ -246,12 +252,15 @@ public:
         
         // haeyeon: LOADING MODEL
         locnetManager = new LocNetManager();
+        nhp.param<double>("map_voxel", map_voxel, 1.0);
+        nhp.param<int>("map_skip", map_skip, 10);
         nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
         nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
         nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
         nhp.param<std::string>("feature_cloud_path", feature_cloud_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_cloud.pcd"); 
         nhp.param<bool>("use_descriptor", use_descriptor, "false");        
         nhp.param<bool>("mapping", mapping, "true");     
+        
         if(mapping)   
             locnetManager->loadModel(model_path);
         subLaserCloudRaw = nhp.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &MapOptimization::laserCloudRawHandler, this);   
@@ -285,6 +294,8 @@ public:
 
         downSizeFilterGlobalMapKeyPoses.setLeafSize(1.0, 1.0, 1.0); // for global map visualization
         downSizeFilterGlobalMapKeyFrames.setLeafSize(0.4, 0.4, 0.4); // for global map visualization
+
+        downSizeSaveMap.setLeafSize(map_voxel, map_voxel, map_voxel);
 
         odomAftMapped.header.frame_id = "/camera_init";
         odomAftMapped.child_frame_id = "/aft_mapped";
@@ -527,6 +538,7 @@ public:
 		    transformAftMapped[i] = transformTobeMapped[i];
 		}
     }
+    
 
     void updatePointAssociateToMapSinCos(){
         cRoll = cos(transformTobeMapped[0]);
@@ -751,14 +763,20 @@ public:
             cloudMsgTemp.header.stamp = ros::Time().fromSec(timeLaserOdometry);
             cloudMsgTemp.header.frame_id = "/camera_init";
             pubRegisteredCloud.publish(cloudMsgTemp);            	    
-            // Haeyeon: save map
-            *cloudOutStack += *cloudOut;
-            if(cloudOutStack->size() != 0 && mapping)
-            {
-                ROS_INFO_ONCE(" Saving Map ... ");
-                pcl::io::savePCDFileASCII(map_save_path, *cloudOutStack);
-            }
 
+            map_cnt += 1;
+            if(mapping && map_cnt % map_skip == 0)
+            {
+                // Haeyeon: save map
+                *cloudOutStack += *cloudOut;    
+                downSizeSaveMap.setInputCloud(cloudOutStack);
+                downSizeSaveMap.filter(*cloudOutStack);
+                if (cloudOutStack->size() != 0)
+                {
+                    ROS_INFO_ONCE(" Saving Map ... ");
+                    pcl::io::savePCDFileASCII(map_save_path, *cloudOutStack);
+                }
+            }
         } 
     }
 
@@ -1493,12 +1511,11 @@ public:
         cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
         outlierCloudKeyFrames.push_back(thisOutlierKeyFrame);
-        
+    
         // ** Haeyeon **
         // Descriptor LocNet
         if (mapping)
         {
-            
             if (use_descriptor)
             {
                 ROS_INFO_ONCE("make and save descriptor features");

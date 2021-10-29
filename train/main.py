@@ -11,10 +11,10 @@ from train_model import *
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-feat_thresh = 0.05
+feat_thresh = 0.1
 dist_thresh = 2
-margin = 100
-save_name = "./locnet_descriptor"
+margin = 20
+save_name = "./locnet_descriptor_new"
 
 def load_data():
     tensor_dataset = []

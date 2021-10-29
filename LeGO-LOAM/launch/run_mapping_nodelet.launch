@@ -22,23 +22,23 @@
 	<!-- $ rosrun nodelet nodelet load sample_nodelet/SampleNodeletClass sample_nodelet_manager __name:=SampleNodeletClass_loader-->
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
     name="ImageProjection_loader" output="screen">
-    <!-- <remap from="velodyne_points" to="points_raw"/> -->
-    </node>
-	
-	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
-    name="FeatureAssociation_loader" output="screen">
         <param name="generate_image" value="false"/>
         <param name="min_dist" value="1"/>
         <param name="max_dist" value="81"/>
     </node>
+	
+	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
+    name="FeatureAssociation_loader" output="screen"/>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
-        <param name="model_path" value="$(arg model_path)"/>
+        <param name="model_path" value="$(arg model_path)"/>        
         <param name="feature_cloud_path" value="$(arg feature_cloud_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
         <param name="map_save_path" value="$(arg map_save_path)"/>
         <param name="use_descriptor" value="false"/>
+        <param name="map_skip" value="1"/>
+        <param name="map_voxel" value="1.0"/>
 	</node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"

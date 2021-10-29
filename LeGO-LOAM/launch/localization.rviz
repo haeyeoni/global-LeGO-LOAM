@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
         - /PoseArray1
         - /Odometry1/Shape1
         - /PoseWithCovariance1
@@ -53,7 +54,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 200
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 1
@@ -95,7 +96,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
+      Size (m): 0.20000000298023224
       Style: Flat Squares
       Topic: /map_cloud
       Unreliable: false
@@ -252,25 +253,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 255.5985870361328
+      Distance: 502.03118896484375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 51.91383361816406
-        Y: -8.537811279296875
-        Z: -35.285282135009766
+        X: 41.0122184753418
+        Y: -5.691311836242676
+        Z: -34.59550476074219
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.524795651435852
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.021775722503662
+      Yaw: 1.55177903175354
     Saved: ~
 Window Geometry:
   Displays:

@@ -92,10 +92,11 @@ private:
     int skip = 0;
     int skip_generate;
     int cnt_image = 0;
-    bool generate_image = true;
+    bool generate_image = false;
     std::string savePath;
     std::ofstream writeFile; 
     int min_dist, max_dist;
+
 public:
     ImageProjection() = default;
     virtual void onInit()
@@ -104,8 +105,8 @@ public:
 
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
-
-        nhp.param<bool>("generate_image", generate_image, "true"); 
+        
+        nhp.param<bool>("generate_image", generate_image, "false"); 
         nhp.param<std::string>("savePath", savePath, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\"); 
         nhp.param<int>("min_dist", min_dist, 1); 
         nhp.param<int>("max_dist", max_dist, 81); 

@@ -193,7 +193,7 @@ public:
 
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
-        
+
         subLaserCloud = nhp.subscribe<sensor_msgs::PointCloud2>("/segmented_cloud", 1, &FeatureAssociation::laserCloudHandler, this);
         subLaserCloudInfo = nhp.subscribe<cloud_msgs::cloud_info>("/segmented_cloud_info", 1, &FeatureAssociation::laserCloudInfoHandler, this);
         subOutlierCloud = nhp.subscribe<sensor_msgs::PointCloud2>("/outlier_cloud", 1, &FeatureAssociation::outlierCloudHandler, this);
@@ -212,6 +212,7 @@ public:
         initializationValue();
         timer = nhp.createTimer(ros::Duration(0.005), boost::bind(&FeatureAssociation::runFeatureAssociation, this, _1));
     }
+
 
     void initializationValue()
     {
@@ -1824,6 +1825,7 @@ public:
 
     void runFeatureAssociation(const ros::TimerEvent& event)
     {
+
         if (newSegmentedCloud && newSegmentedCloudInfo && newOutlierCloud &&
             std::abs(timeNewSegmentedCloudInfo - timeNewSegmentedCloud) < 0.05 &&
             std::abs(timeNewOutlierCloud - timeNewSegmentedCloud) < 0.05){

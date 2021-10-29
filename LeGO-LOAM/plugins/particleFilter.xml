@@ -1,8 +1,0 @@
-<library path="lib/libParticleFilter3D">
-    <class name="lego_loam/ParticleFilter3D" type="lego_loam::ParticleFilter3D"
-		base_class_type="nodelet::Nodelet">
-		<description>
-			ParticleFilter3D class.
-		</description>
-	</class>
-</library>

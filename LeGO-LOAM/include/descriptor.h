@@ -34,6 +34,7 @@
 #include <torch/torch.h>
 #include <torch/script.h> 
 #include "utility.h"
+#include "feature_kdtree.h"
 
 
 using PointType = pcl::PointXYZI;
@@ -47,15 +48,25 @@ class LocNetManager
 private:
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeFeatures;
     pcl::PointCloud<PointType>::Ptr featureCloud;
+
     torch::jit::script::Module descriptor;
+    std::ofstream featureFile;
+    std::string featurePath;
+    // kdtree featureKDTree;
 
 public: 
-    LocNetManager() 
+    LocNetManager(std::string path, bool mapping) 
     {
         kdtreeFeatures.reset(new pcl::KdTreeFLANN<PointType>());
-        featureCloud.reset(new pcl::PointCloud<PointType>());
+        // featureCloud.reset(new pcl::PointCloud<PointType>());
+        featurePath = path;
+        if (mapping)
+            featureFile.open(path);        
     }
-    
+    ~LocNetManager()
+    {
+        featureFile.close();
+    }
     /// Mapping
     void loadModel(string modelPath)
     {
@@ -74,10 +85,11 @@ public:
     {
         float verticalAngle, horizonAngle, range, prev_range, del_range;
         size_t rowIdn, columnIdn, index, cloudSize; 
+        PointType thisPoint;
 
-        int minDist = 1;
-        int maxDist = 81;
-        int maxDelDist = 41;
+
+        int min_dist = 1;
+        int max_dist = 81;
 
         int b = 80;
         int distBucket, bucket, iCount;
@@ -85,28 +97,15 @@ public:
         cv::Mat imageCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0));
         cv::Mat imageOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0));
         
-        cv::Mat imageDelCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0.0));
-        cv::Mat imageDelOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0.0));
-        
-
         cloudSize = laserCloudIn->points.size();
-        PointType thisPoint;  
-        thisPoint.x = laserCloudIn->points[-1].x;
-        thisPoint.y = laserCloudIn->points[-1].y;
-        thisPoint.z = laserCloudIn->points[-1].z;
-        prev_range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y); // + thisPoint.z * thisPoint.z);
-              
-        for (size_t i = 0; i < cloudSize; ++i) {
 
+        for (size_t i = 0; i < cloudSize; ++i){
             thisPoint.x = laserCloudIn->points[i].x;
             thisPoint.y = laserCloudIn->points[i].y;
             thisPoint.z = laserCloudIn->points[i].z;
-
-            // find the row and column index in the iamge for this point
-
             verticalAngle = atan2(thisPoint.z, sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y)) * 180 / M_PI;
             rowIdn = (verticalAngle + ang_bottom) / ang_res_y;
-
+    
             if (rowIdn < 0 || rowIdn >= N_SCAN)
                 continue;
 
@@ -119,83 +118,54 @@ public:
             if (columnIdn < 0 || columnIdn >= Horizon_SCAN)
                 continue;
 
-            // Range
-            range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y); // + thisPoint.z * thisPoint.z);
-            distBucket = (maxDist - minDist) / b;
-            if (range > minDist && range < maxDist)
+            range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y + thisPoint.z * thisPoint.z);
+            distBucket = (max_dist - min_dist) / b;
+
+            if (range > min_dist && range < max_dist)
             {
                 for (int i=0; i < b; i ++)
-                    if (range >= (minDist + i * distBucket) && range <= (minDist + (i+1)*distBucket))
+                    if (range >= (min_dist + i * distBucket) && range <= (min_dist + (i+1)*distBucket))
                         bucket = i + 1;
             }
             else
             {
                 bucket = -1;
             }
-    
             if (bucket > 0)
             {
                 iCount = imageCount.at<int>(rowIdn, bucket);
                 imageCount.at<int>(rowIdn, bucket) = iCount + 1;
+                // <<rowIdn<<" "<<bucket<<" "<< imageCount.at<int>(rowIdn, bucket)<<std::endl;
             }
+            if (range < sensorMinimumRange)
+                continue;
 
-            // Del image 
-            del_range = fabs(prev_range - range);
-            distBucket = (maxDelDist - minDist) / b;
-            if (del_range > minDist && del_range < maxDelDist)
-            {
-                for (int i=0; i < b; i ++)
-                    if (del_range >= (minDist + i * distBucket) && del_range <= (minDist + (i+1)*distBucket))
-                        bucket = i + 1;
-            }
-            else
-            {
-                bucket = -1;
-            }
-    
-            if (bucket > 0)
-            {
-                iCount = imageDelCount.at<int>(rowIdn, bucket);
-                imageDelCount.at<int>(rowIdn, bucket) = iCount + 1;
-            }
+            thisPoint.intensity = (float)rowIdn + (float)columnIdn / 10000.0;
 
-            prev_range = range;
+            index = columnIdn  + rowIdn * Horizon_SCAN;
         }
         
         // Normalize each ring
-        int sumRing, sumDelRing;
+        int sumRing;
         for (size_t i = 0; i < N_SCAN; ++i){
             sumRing = 0;
-            sumDelRing = 0;
 
             for (size_t j = 0; j < b; ++j)
             {
                 sumRing += imageCount.at<int>(i, j);
-                sumDelRing += imageDelCount.at<int>(i,j);
-            }    
-            
+            }                
             for (size_t j = 0; j < b; ++j)
             {
-                imageOne.at<float>(i, j) = (float) imageCount.at<int>(i, j) / (float) sumRing;
-                imageDelOne.at<float>(i, j) = (float) imageDelCount.at<int>(i, j) / (float) sumDelRing;   
+                imageOne.at<float>(i, j) = (float) imageCount.at<int>(i, j) / (float) sumRing * 255.0;
             }                
         }
-        cv::flip(imageOne, imageOne, 0);
-        cv::flip(imageDelOne, imageDelOne, 0);     
 
-        cv::Mat merge = cv::Mat(imageOne.size(), CV_32FC2);
-        std::vector<cv::Mat>channels;
-        channels.push_back(imageOne);
-        channels.push_back(imageDelOne);
-        cv::merge(channels, merge);   
-       
-        auto tensor_image = torch::from_blob(merge.data, { merge.rows, merge.cols, merge.channels() }, at::kByte);
-        tensor_image = tensor_image.permute({ 2,0,1 });
+        cv::flip(imageOne, imageOne, 0);
+        auto tensor_image = torch::from_blob(imageOne.data, { imageOne.rows, imageOne.cols}, at::kByte);
         tensor_image.unsqueeze_(0);
         tensor_image = tensor_image.toType(c10::kFloat);
         tensor_image.to(c10::DeviceType::CUDA);
        
-
         std::vector<torch::jit::IValue> inputs;
         inputs.push_back(tensor_image);
         const at::Tensor output = descriptor.forward(inputs).toTensor();
@@ -203,28 +173,55 @@ public:
         return output;
     }
 
-    void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId, std::string feature_cloud_path)
+    void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId)
     { 
+        featureFile.open(featurePath);
         auto output = makeDescriptor(laserCloudIn);
-        PointType locnet_feature;
-        locnet_feature.x = output[0][0].item<float>();
-        locnet_feature.y = output[0][1].item<float>();
-        locnet_feature.z = output[0][2].item<float>();
-        locnet_feature.intensity = nodeId;
-
-        featureCloud->push_back(locnet_feature);    
-        pcl::io::savePCDFileASCII(feature_cloud_path, *featureCloud);
+        featureFile << output[0][0].item<float>() << " " 
+                    << output[0][1].item<float>() << " " 
+                    << output[0][2].item<float>() << " " 
+                    << output[0][3].item<float>() << " " 
+                    << output[0][4].item<float>() << " " 
+                    << output[0][5].item<float>() << " " 
+                    << output[0][6].item<float>() << " " 
+                    << output[0][7].item<float>() << " " 
+                    << nodeId
+                    << "\n";
+        featureFile.close();
+        // pcl::io::savePCDFileASCII(feature_cloud_path, *featureCloud);
     }   
     
     //// Localization
-    void loadFeatureCloud(string featurePath)
+    void loadFeatureCloud()
     {
-        if (pcl::io::loadPCDFile<PointType> (featurePath, *featureCloud) == -1) //* load the file
+        ifstream openFile(featurePath.data());
+        std::vector<point<float, 9>> points;
+        
+        if (openFile.is_open())
         {
-            PCL_ERROR ("Couldn't read pcd \n");
+            string line;
+            std::vector<float> values;
+            while(getline(openFile, line))
+            {
+                std::istringstream iss(line);
+                float f;
+                while (iss >> f)
+                    values.push_back(f);
+
+                point<float, 9> ft({values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]});
+                points.push_back(ft);
+            }
+            openFile.close();
         }
-        std::cout<< "Loaded Feature Cloud"<<std::endl;      
-        kdtreeFeatures->setInputCloud(featureCloud);  
+        
+        kdtree<float, 8> tree(std::begin(points), std::end(points));
+        
+        // if (pcl::io::loadPCDFile<PointType> (featurePath, *featureCloud) == -1) //* load the file
+        // {
+        //     PCL_ERROR ("Couldn't read pcd \n");
+        // }
+        // std::cout<< "Loaded Feature Cloud"<<std::endl;      
+        // kdtreeFeatures->setInputCloud(featureCloud);  
     }
 
     void findCandidates(PointType inputFeature, double radius, std::vector<int> &searchIdx, std::vector<float> &searchDist, std::vector<int> &nodeList)
@@ -234,6 +231,8 @@ public:
         for (size_t i = 0; i < searchIdx.size(); i ++)
         {
             nodeList.push_back(featureCloud->points[searchIdx[i]].intensity);
+
+            std::cout<<"key pose: "<<featureCloud->points[searchIdx[i]].intensity<<std::endl;
         }
 
     }

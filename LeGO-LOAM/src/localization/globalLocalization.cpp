@@ -24,7 +24,7 @@ private:
     ros::Timer timer;
 
     string modelPath;
-    string featureCloudPath;
+    string featureSavePath;
     string keyPosePath;
     double searchRadius;
     pcl::PointCloud<PointType>::Ptr globalMap;
@@ -41,14 +41,18 @@ public:
         ros::NodeHandle nh = getNodeHandle();
 		ros::NodeHandle nhp = getPrivateNodeHandle();
         // LOADING MODEL
-        locnetManager = new LocNetManager();    
+        nhp.param<std::string>("featureSavePath", featureSavePath, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"); 
+        locnetManager = new LocNetManager(featureSavePath, false);
         cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
         nhp.param<std::string>("model_path", modelPath, "/home/haeyeon/model.pt"); 
-        nhp.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
+
+        // SHOULD BUILD KDTREE FOR FEATURES
+
+        // nhp.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
         nhp.param<std::string>("key_pose_path", keyPosePath, "/home/haeyeon/key_poses.pcd"); 
         nhp.param<double>("search_radius", searchRadius, 10.0); 
         locnetManager->loadModel(modelPath);
-        locnetManager->loadFeatureCloud(featureCloudPath);
+        locnetManager->loadFeatureCloud();
         
         // load poses list        
         if (pcl::io::loadPCDFile<PointType> (keyPosePath, *cloudKeyPoses3D) == -1) //* load the file

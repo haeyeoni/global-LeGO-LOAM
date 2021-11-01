@@ -111,8 +111,9 @@ public:
         nhp.param<int>("min_dist", min_dist, 1); 
         nhp.param<int>("max_dist", max_dist, 81); 
         nhp.param<int>("skip_generate", skip_generate, 5); 
-
-        writeFile.open(savePath + "lego_loam_pose.txt");
+        if (generate_image)
+            writeFile.open(savePath + "lego_loam_pose.txt");
+        
         subLaserCloud = nhp.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 1, &ImageProjection::cloudHandler, this);
 
         pubFullCloud = nhp.advertise<sensor_msgs::PointCloud2> ("/full_cloud_projected", 1);
@@ -196,7 +197,8 @@ public:
 
     ~ImageProjection()
     {
-        writeFile.close();
+        if (generate_image)
+            writeFile.close();
     }
 
     void copyPointCloud(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg){

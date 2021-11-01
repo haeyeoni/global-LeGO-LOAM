@@ -17,6 +17,7 @@ margin = 20
 save_name = "./locnet_descriptor_new"
 
 def load_data():
+    n = 0
     tensor_dataset = []
     poses = [] # tx ty
     image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\'

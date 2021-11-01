@@ -44,6 +44,7 @@ public:
             pis_.push_back(mean_poses[3*i + 2] / similarity_sum);
             acc_pi += mean_poses[3*i + 2] / similarity_sum;
             cumulative_pi_.push_back(acc_pi);
+            std::cout<<"mean pose: " <<mean_poses[3*i + 0] << mean_poses[3*i + 1]<<std::endl;
         }
     }
 

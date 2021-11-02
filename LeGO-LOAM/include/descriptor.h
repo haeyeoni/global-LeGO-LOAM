@@ -28,7 +28,6 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/kdtree/kdtree_flann.h>
 
 
 #include <torch/torch.h>
@@ -39,26 +38,26 @@
 
 using PointType = pcl::PointXYZI;
 
+
 namespace lego_loam
 {
 
 class LocNetManager
 {
 
+typedef point<float, 8> point8d;
+typedef kdtree<float, 8> tree8d;
+
 private:
-    pcl::KdTreeFLANN<PointType>::Ptr kdtreeFeatures;
-    pcl::PointCloud<PointType>::Ptr featureCloud;
 
     torch::jit::script::Module descriptor;
     std::ofstream featureFile;
     std::string featurePath;
-    // kdtree featureKDTree;
+    std::shared_ptr<tree8d> tree;
 
 public: 
     LocNetManager(std::string path, bool mapping) 
     {
-        kdtreeFeatures.reset(new pcl::KdTreeFLANN<PointType>());
-        // featureCloud.reset(new pcl::PointCloud<PointType>());
         featurePath = path;
         if (mapping)
             featureFile.open(path);        
@@ -175,68 +174,52 @@ public:
 
     void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId)
     { 
-        featureFile.open(featurePath);
         auto output = makeDescriptor(laserCloudIn);
-        featureFile << output[0][0].item<float>() << " " 
+        featureFile << nodeId << " " 
+                    << output[0][0].item<float>() << " " 
                     << output[0][1].item<float>() << " " 
                     << output[0][2].item<float>() << " " 
                     << output[0][3].item<float>() << " " 
                     << output[0][4].item<float>() << " " 
                     << output[0][5].item<float>() << " " 
                     << output[0][6].item<float>() << " " 
-                    << output[0][7].item<float>() << " " 
-                    << nodeId
-                    << "\n";
-        featureFile.close();
-        // pcl::io::savePCDFileASCII(feature_cloud_path, *featureCloud);
+                    << output[0][7].item<float>() << "\n";
     }   
     
-    //// Localization
+    //// 
     void loadFeatureCloud()
     {
-        ifstream openFile(featurePath.data());
-        std::vector<point<float, 9>> points;
-        
+        ifstream openFile(featurePath.data());        
+        std::vector<point8d> points;
+
         if (openFile.is_open())
         {
             string line;
-            std::vector<float> values;
             while(getline(openFile, line))
             {
                 std::istringstream iss(line);
                 float f;
+                std::vector<float> values;
                 while (iss >> f)
                     values.push_back(f);
-
-                point<float, 9> ft({values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]});
-                points.push_back(ft);
+                points.push_back({values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]});
             }
             openFile.close();
         }
-        
-        kdtree<float, 8> tree(std::begin(points), std::end(points));
-        
-        // if (pcl::io::loadPCDFile<PointType> (featurePath, *featureCloud) == -1) //* load the file
-        // {
-        //     PCL_ERROR ("Couldn't read pcd \n");
-        // }
-        // std::cout<< "Loaded Feature Cloud"<<std::endl;      
-        // kdtreeFeatures->setInputCloud(featureCloud);  
+
+        tree.reset(new tree8d(std::begin(points), std::end(points)));
+        // point8d n = tree.nearest({0.0, -0.07963, 0.0193815, -0.074069, -0.0861626, -4.3218, 0.0678813, 15.4607, -0.00420333});
+        ROS_INFO("Loaded features");
     }
 
-    void findCandidates(PointType inputFeature, double radius, std::vector<int> &searchIdx, std::vector<float> &searchDist, std::vector<int> &nodeList)
-    {   
-        kdtreeFeatures->radiusSearch(inputFeature, radius, searchIdx, searchDist);
-        ROS_INFO("Found %d number of candidates", searchIdx.size());
-        for (size_t i = 0; i < searchIdx.size(); i ++)
-        {
-            nodeList.push_back(featureCloud->points[searchIdx[i]].intensity);
-
-            std::cout<<"key pose: "<<featureCloud->points[searchIdx[i]].intensity<<std::endl;
-        }
-
+    void findCandidates(at::Tensor feature, int& nearest, float& distance)
+    {
+        std::cout<< "intput tensor: " <<feature<<std::endl;
+        point8d n = tree->nearest({0.0, feature[0][0].item<float>(), feature[0][1].item<float>(), feature[0][2].item<float>(), feature[0][3].item<float>(),
+                                        feature[0][4].item<float>(), feature[0][5].item<float>(), feature[0][6].item<float>(), feature[0][7].item<float>()});
+        nearest = n.get_index();
+        distance = tree->distance();
     }
-
 };
 }
 #endif

@@ -22,7 +22,7 @@ public:
         pnh.param("use_initial_pose", use_initial_pose_, false); 
         pnh.param("initial_x", initial_x_, 0.0); 
         pnh.param("initial_y", initial_y_, 0.0); 
-        pnh.param("initial_yaw", initial_yaw_, 0.0); 
+        pnh.param("initial_yaw", initial_z_, 0.0); 
         
         
         pnh.param("sampling_covariance", sampling_covariance_, 0.1); 
@@ -48,31 +48,10 @@ public:
         pnh.param("map_update_interval_interval", map_update_interval_t, 2.0);
         map_update_interval_.reset(new ros::Duration(map_update_interval_t));
 
-        // Initial pose & covariance
-        double x, y, z;
-        double roll, pitch, yaw;
-        double v_x, v_y, v_z;
-        double v_roll, v_pitch, v_yaw;
         pnh.param("max_z_pose", max_z_pose_, 0.0);
         pnh.param("min_z_pose", min_z_pose_, 0.0);
-        
-        pnh.param("init_x", x, 0.0);
-        pnh.param("init_y", y, 0.0);
-        pnh.param("init_z", z, 0.0);
-        pnh.param("init_roll", roll, 0.0);
-        pnh.param("init_pitch", pitch, 0.0);
-        pnh.param("init_yaw", yaw, 0.0);
-        pnh.param("init_var_x", v_x, 2.0);
-        pnh.param("init_var_y", v_y, 2.0);
-        pnh.param("init_var_z", v_z, 0.5);
-        pnh.param("init_var_roll", v_roll, 0.1);
-        pnh.param("init_var_pitch", v_pitch, 0.1);
-        pnh.param("init_var_yaw", v_yaw, 0.5);
         pnh.param("skip_measure", skip_measure_, 1);
 
-        initial_pose_ = PoseState( Vec3(x, y, z), Quat(Vec3(roll, pitch, yaw)));
-        initial_pose_std_ = PoseState(Vec3(v_x, v_y, v_z), Quat(Vec3(v_roll, v_pitch, v_yaw)));
-        
         pnh.param("max_search_radius", max_search_radius_, 0.2);
         pnh.param("min_search_radius", min_search_radius_, 0.05);
 
@@ -143,7 +122,7 @@ public:
     int skip_measure_;
     
     bool use_initial_pose_;
-    double initial_x_, initial_y_, initial_yaw_;
+    double initial_x_, initial_y_, initial_z_;
 
     double rot_x_, rot_y_, rot_z_;
     double map_roll_, map_pitch_, map_yaw_;
@@ -175,8 +154,6 @@ public:
     double odom_err_ang_ang_;
 
     std::shared_ptr<ros::Duration> map_update_interval_;
-    PoseState initial_pose_;
-    PoseState initial_pose_std_;
 
     double odom_lin_err_tc_;
     double odom_ang_err_tc_;

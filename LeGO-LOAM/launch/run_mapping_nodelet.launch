@@ -4,8 +4,8 @@
     <param name="/use_sim_time" value="true" />
 
     <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_new350.pt"/>
-    <arg name="feature_cloud_path" default="C:\Users\Haeyeon Kim\Desktop\lego_loam_result\feature_cloud.pcd"/>
-    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"/>
+    <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"/>
+    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"/>
 
     <!--- Run Rviz-->
@@ -33,7 +33,7 @@
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
         <param name="model_path" value="$(arg model_path)"/>        
-        <param name="feature_cloud_path" value="$(arg feature_cloud_path)"/>
+        <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
         <param name="map_save_path" value="$(arg map_save_path)"/>
         <param name="use_descriptor" value="true"/>

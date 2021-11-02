@@ -59,10 +59,10 @@ public:
         gmm_.reset(new GaussianMixture<PoseState>(sampling_covariance));        
     }
 
-    void init(int length, float similaritySum, std::vector<float> poses, double init_yaw)
+    void init(std::vector<float> poses)
     {
         std::cout<<"initializing particle filter"<<std::endl;
-        gmm_->setDistribution(length, similaritySum, poses, init_yaw);
+        gmm_->setDistribution(poses);
 
         for (auto& p: particles_)
         {
@@ -70,17 +70,6 @@ public:
             p.probability_ = 1.0 / particles_.size();
         }
         std::cout<<"finish initializing particle filter"<<std::endl;
-        
-    }
-
-
-    void init_with_initialpose(T mean, Matrix covariance)
-    {
-        for (auto& p: particles_)
-        {
-            p.state_ = generateMultivariateNoise(mean, covariance);
-            p.probability_ = 1.0 / particles_.size();
-        }
     }
 
     T generateNoise(T sigma)

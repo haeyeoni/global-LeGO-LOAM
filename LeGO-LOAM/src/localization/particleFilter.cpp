@@ -407,13 +407,10 @@ public:
 
     void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
     {  
-        int length = (int) initial_msg->layout.dim[1].size;
-            
-        if(!initialized && length > 0)
+        if(!initialized)
         {
             std::cout<<"**********Initialization************"<<std::endl;
-            float similaritySum = initial_msg->layout.dim[0].size;
-            pf_->init(length, similaritySum, initial_msg->data, params_.initial_yaw_); 
+            pf_->init(initial_msg->data); 
             initialized = true;
         }
     }
@@ -423,12 +420,12 @@ public:
         std::vector<float> pose; // x pose, y pose, similarity term
         pose.push_back(params_.initial_x_);
         pose.push_back(params_.initial_y_);
-        pose.push_back(1.0);        
+        pose.push_back(params_.initial_z_);
         
         if(!initialized)
         {
             std::cout<<"**********Initialization************"<<std::endl;
-            pf_->init(1, 1.0, pose, params_.initial_yaw_);
+            pf_->init(pose);
             initialized = true;
         }
     }

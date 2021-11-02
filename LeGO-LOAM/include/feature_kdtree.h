@@ -12,8 +12,11 @@ class point {
 public:
     point(std::array<coordinate_type, dimensions> c) : coords_(c) {}
     point(std::initializer_list<coordinate_type> list) {
+        const coordinate_type* p = list.begin();
+        idx_ = *p;
+        ++p;
         size_t n = std::min(dimensions, list.size());
-        std::copy_n(list.begin(), n, coords_.begin());
+        std::copy_n(p, n, coords_.begin());
     }
     /**
      * Returns the coordinate in the given dimension.
@@ -23,6 +26,10 @@ public:
      */
     coordinate_type get(size_t index) const {
         return coords_[index];
+    }
+    
+    int get_index() const {
+        return static_cast<int>(idx_);
     }
     /**
      * Returns the distance squared from this point to another
@@ -41,6 +48,7 @@ public:
     }
 private:
     std::array<coordinate_type, dimensions> coords_;
+    coordinate_type idx_; 
 };
  
 template<typename coordinate_type, size_t dimensions>

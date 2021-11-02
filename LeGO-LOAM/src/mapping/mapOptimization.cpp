@@ -240,6 +240,7 @@ private:
     int map_cnt = 0;
     int map_skip;
     double map_voxel;
+    std::ofstream poseFile;
 
 public:
     MapOptimization() = default;
@@ -255,9 +256,9 @@ public:
         nhp.param<int>("map_skip", map_skip, 10);
         nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
         nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
-        nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.pcd"); 
-        // nhp.param<std::string>("feature_cloud_path", feature_cloud_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_cloud.pcd"); 
         nhp.param<std::string>("feature_save_path", feature_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"); 
+        nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"); 
+
         nhp.param<bool>("use_descriptor", use_descriptor, "false");        
         nhp.param<bool>("mapping", mapping, "true");     
         
@@ -265,6 +266,7 @@ public:
         {
             locnetManager = new LocNetManager(feature_save_path, mapping);
             locnetManager->loadModel(model_path);
+            poseFile.open(key_pose_path);
         }
 
         subLaserCloudRaw = nhp.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 2, &MapOptimization::laserCloudRawHandler, this);   
@@ -1528,9 +1530,9 @@ public:
                 locnetManager->makeAndSaveLocNet(thisRawCloudKeyFrame, (int)cloudKeyPoses3D->points.size());
             }
             
-            // save keypoint pose
-            // std::cout<<" Saving Poses ... " <<cloudKeyPoses3D->points.size() <<std::endl;
-            pcl::io::savePCDFileASCII(key_pose_path, *cloudKeyPoses3D);
+            // pcl::io::savePCDFileASCII(key_pose_path, *cloudKeyPoses3D);
+            int size = cloudKeyPoses3D->points.size();
+            poseFile << size << " " << latestEstimate.translation().x()<< " " << latestEstimate.translation().y() << " "<<latestEstimate.translation().z()<<"\n" ; // id, x, y; 
         }
     }
 

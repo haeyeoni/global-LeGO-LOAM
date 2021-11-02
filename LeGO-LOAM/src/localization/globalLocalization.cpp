@@ -29,7 +29,8 @@ private:
     double searchRadius;
     pcl::PointCloud<PointType>::Ptr globalMap;
     pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
-
+    std::vector<std::vector<float>> keyPoses;
+   
     bool initialized = false;
 
 public:
@@ -46,24 +47,36 @@ public:
         cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
         nhp.param<std::string>("model_path", modelPath, "/home/haeyeon/model.pt"); 
 
-        // SHOULD BUILD KDTREE FOR FEATURES
-
-        // nhp.param<std::string>("feature_cloud_path", featureCloudPath, "/home/haeyeon/locnet_features.pcd"); 
-        nhp.param<std::string>("key_pose_path", keyPosePath, "/home/haeyeon/key_poses.pcd"); 
+        nhp.param<std::string>("key_pose_path", keyPosePath, "/home/haeyeon/key_poses.txt"); 
         nhp.param<double>("search_radius", searchRadius, 10.0); 
         locnetManager->loadModel(modelPath);
         locnetManager->loadFeatureCloud();
+        loadKeyPose();
         
-        // load poses list        
-        if (pcl::io::loadPCDFile<PointType> (keyPosePath, *cloudKeyPoses3D) == -1) //* load the file
-        {
-            PCL_ERROR ("Couldn't read pcd \n");
-            return;
-        }
-        std::cout<< "Loaded pose list"<<std::endl; 
+        
 
         pubInitialize = nh.advertise<std_msgs::Float32MultiArray>("/initialize_data", 1);
         subPointCloud = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 10, &GlobalLocalization::handlePointCloud, this);        
+    }
+
+    void loadKeyPose()
+    {
+        ifstream poseFile(keyPosePath.data());
+        if (poseFile.is_open())
+        {
+            string line;
+            while(getline(poseFile, line))
+            {
+                std::istringstream iss(line);
+                float f;
+                std::vector<float> values;
+                while (iss >> f)
+                    values.push_back(f);
+                keyPoses.push_back(values);
+            }
+            poseFile.close();
+        }
+        ROS_INFO("Loaded pose list"); 
     }
 
     void handlePointCloud(const sensor_msgs::PointCloud2ConstPtr& msg)
@@ -74,36 +87,30 @@ public:
             std_msgs::Float32MultiArray initialPoseMsg;
             pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
             pcl::fromROSMsg(*msg, *laserCloudRaw);
-            std::vector<int> searchIdx, nodeList;
-            std::vector<float> searchDist;
-            auto output = locnetManager->makeDescriptor(laserCloudRaw);
+            auto locnetFeature = locnetManager->makeDescriptor(laserCloudRaw);
+            
+            int nnode;
+            float distance;
 
-            PointType locnetFeature;
-            locnetFeature.x = output[0][0].item<float>();
-            locnetFeature.y = output[0][1].item<float>();
-            locnetFeature.z = output[0][2].item<float>();
-            locnetManager->findCandidates(locnetFeature, searchRadius, searchIdx, searchDist, nodeList);
-            if (nodeList.size() > 0)
+            locnetManager->findCandidates(locnetFeature, nnode, distance); 
+            std::cout<<"Nearest: "<<nnode<<" distance: "<< distance<<std::endl;
+            std::vector<float> poseData(3*10, 0); // maximum 10 candidates
+
+            if (distance < searchRadius)
             {
-                float similaritySum = 0;
+                poseData[0] = keyPoses[nnode][1]; // x
+                poseData[1] = keyPoses[nnode][2]; // y
+                poseData[2] = keyPoses[nnode][3]; // z
 
-                std::vector<float> poseData(3*10, 0); // maximum 10 candidates
-                for (size_t i = 0; i < nodeList.size(); i++)
-                {
-                    poseData[3*i + 0] = cloudKeyPoses3D->points[nodeList[i]].x;
-                    poseData[3*i + 1] = cloudKeyPoses3D->points[nodeList[i]].y;
-                    poseData[3*i + 2] = searchDist[i];
-                    similaritySum += searchDist[i];
-                }
-
-                initialPoseMsg.data = poseData; // data: x pose, y pose, similarity term
+                initialPoseMsg.data = poseData; // data: x pose, y pose, z pose
                 initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
                 initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
                 initialPoseMsg.layout.dim[0].label = "similarity_sum";
-                initialPoseMsg.layout.dim[0].size = similaritySum;
+                initialPoseMsg.layout.dim[0].size = distance;
                 initialPoseMsg.layout.dim[1].label = "length";
-                initialPoseMsg.layout.dim[1].size = nodeList.size();
+                initialPoseMsg.layout.dim[1].size = 1;
                 pubInitialize.publish(initialPoseMsg); 
+                ROS_INFO_ONCE("Initialized");
                 initialized = true;
             }
         }

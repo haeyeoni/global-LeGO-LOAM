@@ -2,6 +2,10 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
+    <arg name="goal_x" default="0.0"/> <!-- Increase accuracy -->
+    <arg name="goal_y" default="20.0"/>
+    <arg name="goal_radius" default = "1.0"/>
+    
     <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_new350.pt"/>
     <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"/>
     <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"/>
@@ -42,6 +46,10 @@
         <!-- <param name="rot_x" value="0.0"/>
         <param name="rot_y" value="1.570795"/>
         <param name="rot_z" value="1.570795"/> -->
+        <param name="goal_x" value="$(arg goal_x)"/>
+        <param name="goal_y" value="$(arg goal_y)"/>
+        <param name="goal_radius" value="$(arg goal_radius)"/>
+
         <param name="map_save_path" value="$(arg map_save_path)"/>        
         <param name="use_initial_pose" value="$(arg use_initial_pose)"/>
         <param name="initial_x" value="0.0"/>

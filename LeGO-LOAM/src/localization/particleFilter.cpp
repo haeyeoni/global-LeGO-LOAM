@@ -112,9 +112,10 @@ private:
     // flag
     size_t cnt_measure_;
     bool map_rotated_;
+    bool in_boundary_; 
 
 public:
-    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false) {}
+    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false), in_boundary_(false) {}
 
     void onInit() 
     {       
@@ -244,17 +245,23 @@ public:
     {
         if(!initialized)
             return;
-        
         ROS_INFO_ONCE("cloud received");
-
         if(!loaded_map)
             return;
+
+
         all_accum_pointcloud_.reset(new pcl::PointCloud<PointType>);
         local_accum_pointcloud_.reset(new pcl::PointCloud<PointType>);
         local_accum_pointcloud_->header.frame_id = "laser_odom";
         accum_header_.clear();
         if (accumCloud(cloud_msg)) // accumulate the transformed point cloud
-            measure();
+        {
+            if(in_boundary_) 
+                matchICP(); // for higher accuracy
+            else
+                measure();
+        }
+            
     }
 
     bool accumCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg)
@@ -280,6 +287,11 @@ public:
         *local_accum_pointcloud_ += *temp_pointcloud;
         accum_header_.push_back(cloud_msg->header);
         return true;      
+    }
+
+    void matchICP()
+    {
+        
     }
 
     void measure()
@@ -392,8 +404,13 @@ public:
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
         
         publishPose(biased_mean, header);  
-
-
+        
+        // Check the goal pose
+        if (pow(biased_mean.pose_.x_ - params_.goal_x, 2) + pow(biased_mean.pose_.x_ - params_.goal_x, 2) < pow(params_.goal_radius_))
+        {
+            ROS_INFO("WITHIN GOAL BOUNDARY. CHANGE TO ICP");
+            in_boundary_ = true;
+        }
         // 7. Publish map tf
         ros::Time localized_current = ros::Time::now();
         float dt = (localized_current - localized_last_).toSec();

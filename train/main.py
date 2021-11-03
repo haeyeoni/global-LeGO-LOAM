@@ -13,14 +13,14 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 feat_thresh = 0.1
 dist_thresh = 2
-margin = 20
-save_name = "./locnet_descriptor_new"
+margin = 30
+save_name = "./trained_model/locnet_descriptor_kitti"
 
 def load_data():
     n = 0
     tensor_dataset = []
     poses = [] # tx ty
-    image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\'
+    image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image_kitti\\'
     gt_path = image_paths + "lego_loam_pose.txt" 
     f = open(gt_path, "r")
     while True:
@@ -125,6 +125,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
     with torch.no_grad():
         model.eval()
         val_loss = 0
+        prev_val_loss = 0
         for batch_idx, (data, target) in enumerate(val_loader):
             target = target if len(target) > 0 else None
             if not type(data) in (tuple, list):
@@ -151,11 +152,14 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             loss_outputs = loss_fn(*loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
             val_loss += loss.item()
-
+    
     print("test accuracy: %f (%d/%d)"%(correct/total, correct, total))
-    if epoch % 10 == 0:
+    if epoch % 100 == 0:
         traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
         traced_script_module.save(save_name + str(epoch)+".pt")
+    if val_loss < prev_val_loss:
+         traced_script_module.save(save_name + str(epoch)+"best.pt")
+    prev_val_loss = val_loss
 
 
     return val_loss
@@ -181,6 +185,6 @@ if __name__ == '__main__':
     lr = 1e-3
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-    n_epochs = 100000
+    n_epochs = 1000000
     log_interval = 100    
     fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)

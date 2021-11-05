@@ -12,7 +12,7 @@ from train_model import *
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 feat_thresh = 0.1
-dist_thresh = 2
+dist_thresh = 3 #2
 margin = 30
 save_name = "./trained_model/locnet_descriptor_kitti"
 
@@ -125,7 +125,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
     with torch.no_grad():
         model.eval()
         val_loss = 0
-        prev_val_loss = 0
+        min_loss = float('inf')
         for batch_idx, (data, target) in enumerate(val_loader):
             target = target if len(target) > 0 else None
             if not type(data) in (tuple, list):
@@ -156,12 +156,12 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
     print("test accuracy: %f (%d/%d)"%(correct/total, correct, total))
     if epoch % 100 == 0:
         traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
-        traced_script_module.save(save_name + str(epoch)+".pt")
-    if val_loss < prev_val_loss:
-         traced_script_module.save(save_name + str(epoch)+"best.pt")
-    prev_val_loss = val_loss
-
-
+        traced_script_module.save(save_name + str(epoch%100)+".pt")
+    min_loss = min(min_loss, val_loss)
+    if val_loss < min_loss:
+        traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
+        traced_script_module.save(save_name + str(epoch)+"best.pt")
+    
     return val_loss
 
 if __name__ == '__main__':

@@ -3,10 +3,10 @@
     <param name="/use_sim_time" value="true" />
 
     <arg name="goal_x" default="0.0"/> <!-- Increase accuracy -->
-    <arg name="goal_y" default="20.0"/>
-    <arg name="goal_radius" default = "1.0"/>
+    <arg name="goal_y" default="0.0"/>
+    <arg name="goal_radius" default = "10.0"/>
     
-    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_new350.pt"/>
+    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_posco.pt"/>
     <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"/>
     <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"/>

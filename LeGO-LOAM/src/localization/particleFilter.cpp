@@ -291,7 +291,7 @@ public:
 
     void matchICP()
     {
-        
+        ROS_INFO("ICP matching");
     }
 
     void measure()
@@ -406,7 +406,7 @@ public:
         publishPose(biased_mean, header);  
         
         // Check the goal pose
-        if (pow(biased_mean.pose_.x_ - params_.goal_x, 2) + pow(biased_mean.pose_.x_ - params_.goal_x, 2) < pow(params_.goal_radius_))
+        if (pow(biased_mean.pose_.x_ - params_.goal_x_, 2) + pow(biased_mean.pose_.y_ - params_.goal_y_, 2) < pow(params_.goal_radius_, 2))
         {
             ROS_INFO("WITHIN GOAL BOUNDARY. CHANGE TO ICP");
             in_boundary_ = true;

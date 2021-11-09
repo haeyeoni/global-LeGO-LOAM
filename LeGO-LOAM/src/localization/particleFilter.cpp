@@ -78,6 +78,7 @@ private:
     pcl::PointCloud<PointType>::Ptr global_map_;
     pcl::PointCloud<PointType>::Ptr all_accum_pointcloud_;
     pcl::PointCloud<PointType>::Ptr local_accum_pointcloud_;
+    pcl::PointCloud<PointType>::Ptr pc_local_full_; 
     std::vector<std_msgs::Header> accum_header_;
 
     bool loaded_map = false;  
@@ -130,6 +131,7 @@ public:
 
         // load saved map
         global_map_.reset(new pcl::PointCloud<PointType>());
+        pc_local_full_.reset(new pcl::PointCloud<PointType>());
         if (pcl::io::loadPCDFile<PointType> (params_.map_save_path_, *global_map_) == -1) //* load the file
         {
             PCL_ERROR ("Couldn't read pcd \n");
@@ -205,7 +207,7 @@ public:
     }
 
     void handleLaserOdometry(const nav_msgs::Odometry::ConstPtr& odom_msg)
-    {
+    {       
         ROS_INFO_ONCE("odom received");
 
         tf::Quaternion q_rot = tf::createQuaternionFromRPY(params_.rot_x_, params_.rot_y_, params_.rot_z_);
@@ -217,6 +219,7 @@ public:
 
         odom_ =  PoseState(Vec3(odom_msg->pose.pose.position.x, odom_msg->pose.pose.position.y, odom_msg->pose.pose.position.z),
                         Quat(q_orientation_rot.x(), q_orientation_rot.y(), q_orientation_rot.z(), q_orientation_rot.w()) );
+    
 
         if (!has_odom_) // if this is initial odom
         {
@@ -249,19 +252,13 @@ public:
         if(!loaded_map)
             return;
 
-
         all_accum_pointcloud_.reset(new pcl::PointCloud<PointType>);
         local_accum_pointcloud_.reset(new pcl::PointCloud<PointType>);
         local_accum_pointcloud_->header.frame_id = "laser_odom";
         accum_header_.clear();
         if (accumCloud(cloud_msg)) // accumulate the transformed point cloud
-        {
-            if(in_boundary_) 
-                matchICP(); // for higher accuracy
-            else
-                measure();
-        }
-            
+            measure();
+        
     }
 
     bool accumCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg)
@@ -287,11 +284,6 @@ public:
         *local_accum_pointcloud_ += *temp_pointcloud;
         accum_header_.push_back(cloud_msg->header);
         return true;      
-    }
-
-    void matchICP()
-    {
-        ROS_INFO("ICP matching");
     }
 
     void measure()
@@ -353,11 +345,11 @@ public:
     
         // 3. Down sampling the current accumulated point cloud (pc_local_accum)
         const auto ts = boost::chrono::high_resolution_clock::now();
-        pcl::PointCloud<PointType>::Ptr pc_local_full(new pcl::PointCloud<PointType>());
+        // pcl::PointCloud<PointType>::Ptr pc_local_full(new pcl::PointCloud<PointType>());
         pcl::VoxelGrid<PointType> ds;
         ds.setInputCloud(local_accum_pointcloud_);
         ds.setLeafSize(params_.downsample_x_, params_.downsample_y_, params_.downsample_z_);
-        ds.filter(*pc_local_full);
+        ds.filter(*pc_local_full_);
         
         pcl::PointCloud<PointType>::Ptr pc_locals; 
         lidar_model_->setParticleNumber(params_.num_particles_, pf_->getParticleSize()); // Modify number of particles
@@ -370,7 +362,7 @@ public:
         // 5. Random sample with normal distribution
         auto sampler = std::dynamic_pointer_cast<PointCloudSampler<PointType>>(lidar_model_->getSampler());    
         sampler->setParticleStatistics(prev_mean, prev_cov);  
-        pc_locals = lidar_model_->filter(pc_local_full); 
+        pc_locals = lidar_model_->filter(pc_local_full_); 
     
         if (pc_locals->size() == 0)
         {
@@ -379,7 +371,11 @@ public:
         }
         
         // 6. Correction Step with Lidar model
-        float match_ratio_max = lidar_model_->measureCorrect(pf_, pc_locals, origins);
+        float match_ratio_max;
+        // if (in_boundary_)
+        //     match_ratio_max = lidar_model_->measureCorrectICP(pf_, pc_locals, global_map_, origins);
+        // else
+        match_ratio_max = lidar_model_->measureCorrect(pf_, pc_locals, origins);
         // std::cout<<"match ratio: "<< match_ratio_max <<std::endl;
         if (match_ratio_max < params_.match_ratio_thresh_)
         {
@@ -410,6 +406,10 @@ public:
         {
             ROS_INFO("WITHIN GOAL BOUNDARY. CHANGE TO ICP");
             in_boundary_ = true;
+        }
+        else 
+        {
+            in_boundary_ = false;
         }
         // 7. Publish map tf
         ros::Time localized_current = ros::Time::now();

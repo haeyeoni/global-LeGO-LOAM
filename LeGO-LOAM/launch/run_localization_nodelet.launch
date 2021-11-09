@@ -2,9 +2,9 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
-    <arg name="goal_x" default="0.0"/> <!-- Increase accuracy -->
+    <arg name="goal_x" default="30.0"/> <!-- Increase accuracy -->
     <arg name="goal_y" default="0.0"/>
-    <arg name="goal_radius" default = "10.0"/>
+    <arg name="goal_radius" default = "3.0"/>
     
     <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_posco.pt"/>
     <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"/>
@@ -36,10 +36,11 @@
     
     <!--- Initialize -->    
     <node unless="$(arg use_initial_pose)" pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager" name="GlobalLocalization_loader" output="screen">
+        <param name="dist_tolerance" value="150.0"/>
         <param name="model_path" value="$(arg model_path)"/>
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
-        <param name="search_radius" value="0.002"/>
+        <param name="search_radius" value="0.01"/>
     </node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager" name="ParticleFilter3D_loader" output="screen">
@@ -77,9 +78,9 @@
         <param name="expansion_var_y" value="1.0"/>
         <param name="expansion_var_yaw" value="0.5"/>
 
-        <param name="map_downsample_x" value="0.3"/>
-        <param name="map_downsample_y" value="0.3"/>
-        <param name="map_downsample_z" value="0.3"/>
+        <param name="map_downsample_x" value="0.2"/>
+        <param name="map_downsample_y" value="0.2"/>
+        <param name="map_downsample_z" value="0.2"/>
         <param name="map_chunk" value="500"/>
         
         <param name="odom_err_lin_lin" value="0.001"/>

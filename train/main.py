@@ -11,10 +11,10 @@ from train_model import *
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-feat_thresh = 0.1
-dist_thresh = 3 #2
-margin = 30
-save_name = "./trained_model/locnet_descriptor_kitti"
+feat_thresh = 0.01
+dist_thresh = 10 #2
+margin = 100
+save_name = "./trained_model/kitti1_"
 
 def load_data():
     n = 0
@@ -154,11 +154,12 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             val_loss += loss.item()
     
     print("test accuracy: %f (%d/%d)"%(correct/total, correct, total))
-    if epoch % 100 == 0:
+    if epoch % 500 == 0 and epoch != 0:
         traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
-        traced_script_module.save(save_name + str(epoch%100)+".pt")
+        traced_script_module.save(save_name + str(epoch)+"_64.pt")
+
     min_loss = min(min_loss, val_loss)
-    if val_loss < min_loss:
+    if val_loss <= min_loss and epoch > 1000:
         traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
         traced_script_module.save(save_name + str(epoch)+"best.pt")
     
@@ -169,7 +170,7 @@ if __name__ == '__main__':
     train_dataset = SiameseDataset(dataset, True, poses, dist_thresh)
     test_dataset = SiameseDataset(dataset, False, poses, dist_thresh)
 
-    batch_size = 32
+    batch_size = 64 #32
     kwargs = {'num_workers': 3, 'pin_memory': True} if cuda else {}
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
@@ -183,8 +184,9 @@ if __name__ == '__main__':
         model.cuda()
     
     lr = 1e-3
+
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-    n_epochs = 1000000
+    n_epochs = 100000
     log_interval = 100    
     fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)

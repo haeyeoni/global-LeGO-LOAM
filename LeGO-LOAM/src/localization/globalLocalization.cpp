@@ -7,6 +7,10 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/MultiArrayDimension.h>
 
+
+#include <torch/torch.h>
+#include <torch/script.h> 
+
 using namespace lego_loam;
 
 using PointType = pcl::PointXYZI;
@@ -27,10 +31,12 @@ private:
     string featureSavePath;
     string keyPosePath;
     double searchRadius;
+    double dist_tolerance;
     pcl::PointCloud<PointType>::Ptr globalMap;
     pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
     std::vector<std::vector<float>> keyPoses;
-   
+    
+    std::vector<float> prevPose;
     bool initialized = false;
 
 public:
@@ -49,12 +55,10 @@ public:
 
         nhp.param<std::string>("key_pose_path", keyPosePath, "/home/haeyeon/key_poses.txt"); 
         nhp.param<double>("search_radius", searchRadius, 10.0); 
+        nhp.param<double>("dist_tolerance", dist_tolerance, 100.0); 
         locnetManager->loadModel(modelPath);
         locnetManager->loadFeatureCloud();
-        loadKeyPose();
-        
-        
-
+        loadKeyPose();     
         pubInitialize = nh.advertise<std_msgs::Float32MultiArray>("/initialize_data", 1);
         subPointCloud = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 10, &GlobalLocalization::handlePointCloud, this);        
     }
@@ -81,14 +85,14 @@ public:
 
     void handlePointCloud(const sensor_msgs::PointCloud2ConstPtr& msg)
     {
+        pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
+        pcl::fromROSMsg(*msg, *laserCloudRaw);
+
         if (!initialized)
         {
             // initialized = true;
             std_msgs::Float32MultiArray initialPoseMsg;
-            pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
-            pcl::fromROSMsg(*msg, *laserCloudRaw);
             auto locnetFeature = locnetManager->makeDescriptor(laserCloudRaw);
-            
             int nnode;
             float distance;
 
@@ -113,7 +117,38 @@ public:
                 ROS_INFO_ONCE("Initialized");
                 initialized = true;
             }
+
+            for (int i = 0; i < 3; i ++)
+                prevPose[i] = poseData[i];
         }
+        // After initialized: check distance between the previous cloud
+        else
+        {
+            std_msgs::Float32MultiArray initialPoseMsg;
+            auto locnetFeature = locnetManager->makeDescriptor(laserCloudRaw);
+            int nnode;
+            float distance;
+
+            locnetManager->findCandidates(locnetFeature, nnode, distance); 
+            std::cout<<"Nearest: "<<nnode<<" distance: "<< distance<<std::endl;
+            std::vector<float> poseData(3); // maximum 10 candidates
+
+            if (distance < searchRadius)
+            {
+                poseData[0] = keyPoses[nnode][1]; // x
+                poseData[1] = keyPoses[nnode][2]; // y
+                poseData[2] = keyPoses[nnode][3]; // z
+            }
+            // calculate the distance between the previous pose
+            float dist = 0;
+            for (int i = 0; i < 3; i ++)
+                dist += pow(prevPose[i]-poseData[i], 2);
+
+            std::cout<<"distance: "<<sqrt(dist)<<std::endl;
+            for (int i = 0; i < 3; i ++)
+                prevPose[i] = poseData[i];
+        }
+        
     }
 };
 }

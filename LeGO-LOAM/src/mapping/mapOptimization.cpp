@@ -239,6 +239,7 @@ private:
     bool mapping = true;
     int map_cnt = 0;
     int map_skip;
+    int feature_dim;
     double map_voxel;
     std::ofstream poseFile;
 
@@ -258,6 +259,7 @@ public:
         nhp.param<std::string>("map_save_path", map_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
         nhp.param<std::string>("feature_save_path", feature_save_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"); 
         nhp.param<std::string>("key_pose_path", key_pose_path, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"); 
+        
 
         nhp.param<bool>("use_descriptor", use_descriptor, "false");        
         nhp.param<bool>("mapping", mapping, "true");     

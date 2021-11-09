@@ -38,7 +38,7 @@
         <param name="map_save_path" value="$(arg map_save_path)"/>
         <param name="use_descriptor" value="true"/>
         <param name="map_skip" value="2"/>
-        <param name="map_voxel" value="2.0"/>
+        <param name="map_voxel" value="0.5"/>
 	</node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"

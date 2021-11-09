@@ -36,7 +36,7 @@
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
         <param name="map_save_path" value="$(arg map_save_path)"/>
-        <param name="use_descriptor" value="true"/>
+        <param name="use_descriptor" value="false"/>
         <param name="map_skip" value="1"/>
         <param name="map_voxel" value="1.0"/>
 	</node>

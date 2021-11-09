@@ -35,8 +35,8 @@
 #include "utility.h"
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
-#include <opencv2\highgui\highgui.hpp>
-#include <opencv2\core\core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core/core.hpp>
 
 namespace lego_loam
 {

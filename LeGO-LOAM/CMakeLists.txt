@@ -3,8 +3,8 @@ project(lego_loam)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3")
 
-set(GTSAM_LIBRARY_DIRS "C:/Program\ Files\ (x86)/GTSAM/lib")
-set(GTSAM_INCLUDE_DIR "C:/Program\ Files\ (x86)/GTSAM/include")
+#set(GTSAM_LIBRARY_DIRS "C:/Program\ Files\ (x86)/GTSAM/lib")
+#set(GTSAM_INCLUDE_DIR "C:/Program\ Files\ (x86)/GTSAM/include")
 
 find_package(catkin REQUIRED COMPONENTS
   tf
@@ -35,11 +35,9 @@ find_package(PCL REQUIRED QUIET)
 find_package(OpenCV REQUIRED QUIET)
 
 # Find Packages
-set(PCL_ROOT "C:/Program\ Files/PCL\ 1.8.1")
-set(PCL_INCLUDE_DIRS "C:/Program\ Files/PCL\ 1.8.1/include")
-set(PCL_LIBRARIES "C:/Program\ Files/PCL\ 1.8.1/lib")
-find_package(PCL REQUIRED QUIET)
-find_package(OpenCV REQUIRED QUIET)
+#set(PCL_ROOT "C:/Program\ Files/PCL\ 1.8.1")
+#set(PCL_INCLUDE_DIRS "C:/Program\ Files/PCL\ 1.8.1/include")
+#set(PCL_LIBRARIES "C:/Program\ Files/PCL\ 1.8.1/lib")
 
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
@@ -70,29 +68,29 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
-add_library(imageProjection src/mapping/imageProjection.cpp)
-add_dependencies(imageProjection ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
-target_link_libraries(imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(ImageProjection src/mapping/imageProjection.cpp)
+add_dependencies(ImageProjection ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
+target_link_libraries(ImageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(featureAssociation src/mapping/featureAssociation.cpp)
-add_dependencies(featureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
-target_link_libraries(featureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(FeatureAssociation src/mapping/featureAssociation.cpp)
+add_dependencies(FeatureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp)
+target_link_libraries(FeatureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(mapOptimization src/mapping/mapOptimization.cpp)
-target_link_libraries(mapOptimization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} GTSAM )
+add_library(MapOptimization src/mapping/mapOptimization.cpp)
+target_link_libraries(MapOptimization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam )
 
-add_library(transformFusion src/mapping/transformFusion.cpp)
-target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(TransformFusion src/mapping/transformFusion.cpp)
+target_link_libraries(TransformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(globalLocalization src/localization/globalLocalization.cpp)
-target_link_libraries(globalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+add_library(GlobalLocalization src/localization/globalLocalization.cpp)
+target_link_libraries(GlobalLocalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_library(particleFilter3D src/localization/particleFilter.cpp)
-target_link_libraries(particleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
+add_library(ParticleFilter3D src/localization/particleFilter.cpp)
+target_link_libraries(ParticleFilter3D ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${Eigen3_LIBRARIES})
 
 
-set(CMAKE_PREFIX_PATH "C:/Users/Haeyeon\ Kim/projects/libtorch")
+set(CMAKE_PREFIX_PATH "/home/haeyeon/Downloads/libtorch")
 find_package(Torch REQUIRED)
 
-target_link_libraries(mapOptimization "${TORCH_LIBRARIES}")
-target_link_libraries(globalLocalization "${TORCH_LIBRARIES}")
+target_link_libraries(MapOptimization "${TORCH_LIBRARIES}")
+target_link_libraries(GlobalLocalization "${TORCH_LIBRARIES}")

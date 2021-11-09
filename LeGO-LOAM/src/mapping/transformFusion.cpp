@@ -77,14 +77,14 @@ public:
         subLaserOdometry = nhp.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
         subOdomAftMapped = nhp.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
 
-        laserOdometry2.header.frame_id = "/camera_init";
+        laserOdometry2.header.frame_id = "camera_init";
         laserOdometry2.child_frame_id = "/camera";
 
-        laserOdometryTrans2.frame_id_ = "/camera_init";
+        laserOdometryTrans2.frame_id_ = "camera_init";
         laserOdometryTrans2.child_frame_id_ = "/camera";
 
         map_2_camera_init_Trans.frame_id_ = "/map";
-        map_2_camera_init_Trans.child_frame_id_ = "/camera_init";
+        map_2_camera_init_Trans.child_frame_id_ = "camera_init";
 
         camera_2_base_link_Trans.frame_id_ = "/camera";
         camera_2_base_link_Trans.child_frame_id_ = "/base_link";

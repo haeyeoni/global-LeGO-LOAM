@@ -2,10 +2,14 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
-    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_new350.pt"/>
-    <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"/>
-    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"/>
-    <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"/>
+    <arg name="goal_x" default="2000000.0"/> <!-- Increase accuracy -->
+    <arg name="goal_y" default="0.0"/>
+    <arg name="goal_radius" default = "3.0"/>
+    
+    <arg name="model_path" default="/home/haeyeon/Cocel/locnet_posco.pt"/>
+    <arg name="feature_save_path" default="/home/haeyeon/Cocel/lego_loam_result/feature_lists.txt"/>
+    <arg name="key_pose_path" default="/home/haeyeon/Cocel/lego_loam_result/key_poses.txt"/>
+    <arg name="map_save_path" default="/home/haeyeon/Cocel/lego_loam_result/lego_loam_map.pcd"/>
 
     <arg name="use_initial_pose" default="false"/>
 
@@ -32,16 +36,22 @@
     
     <!--- Initialize -->    
     <node unless="$(arg use_initial_pose)" pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager" name="GlobalLocalization_loader" output="screen">
+        <param name="dist_tolerance" value="150.0"/>
         <param name="model_path" value="$(arg model_path)"/>
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
-        <param name="search_radius" value="0.002"/>
+        <param name="search_radius" value="2.0"/>
+        <param name="skip_cnt" value="20"/>
     </node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager" name="ParticleFilter3D_loader" output="screen">
         <!-- <param name="rot_x" value="0.0"/>
         <param name="rot_y" value="1.570795"/>
         <param name="rot_z" value="1.570795"/> -->
+        <param name="goal_x" value="$(arg goal_x)"/>
+        <param name="goal_y" value="$(arg goal_y)"/>
+        <param name="goal_radius" value="$(arg goal_radius)"/>
+
         <param name="map_save_path" value="$(arg map_save_path)"/>        
         <param name="use_initial_pose" value="$(arg use_initial_pose)"/>
         <param name="initial_x" value="0.0"/>
@@ -69,9 +79,9 @@
         <param name="expansion_var_y" value="1.0"/>
         <param name="expansion_var_yaw" value="0.5"/>
 
-        <param name="map_downsample_x" value="0.3"/>
-        <param name="map_downsample_y" value="0.3"/>
-        <param name="map_downsample_z" value="0.3"/>
+        <param name="map_downsample_x" value="0.2"/>
+        <param name="map_downsample_y" value="0.2"/>
+        <param name="map_downsample_z" value="0.2"/>
         <param name="map_chunk" value="500"/>
         
         <param name="odom_err_lin_lin" value="0.001"/>

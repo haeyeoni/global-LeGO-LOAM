@@ -3,27 +3,32 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
-    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
-    <arg name="feature_cloud_path" default="C:\\Users\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_cloud1.pcd"/>
-    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_key_poses1.pcd"/>
-    <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_lego_loam_map1.pcd"/>
+    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_kitti2000_64.pt"/>
+    <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_lists.txt"/>
+    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_key_poses.txt"/>
+    <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_lego_loam_map.pcd"/>
 
     <!--- Run Rviz-->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lego_loam)/launch/test.rviz" />
 
     <!--- TF -->
     <node pkg="tf" type="static_transform_publisher" name="camera_init_to_map"  args="0 0 0 1.570795   0        1.570795 /map    /camera_init 10" />
-    <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera" args="0 0 0 -1.570795 -1.570795 0        /camera /base_link   10" />
+    <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera" args="0 0 0 1.570795 1.570795 0        /camera /base_link   10" />
+    <node pkg="tf" type="static_transform_publisher" name="base_to_velo" args="0 0 0 0 0 0        /base_link /velodyne   10" />
 
 	<!-- $ rosrun nodelet nodelet manager __name:=sample_nodelet_manager -->
 	<node pkg="nodelet" type="nodelet" args="manager"
     name="legoloam_nodelet_manager" output="screen" />
 
 	<!-- $ rosrun nodelet nodelet load sample_nodelet/SampleNodeletClass sample_nodelet_manager __name:=SampleNodeletClass_loader-->
-    <remap from="velodyne_points" to="points_raw"/>
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
     name="ImageProjection_loader" output="screen">
-    <param name="generate_image" value="true"/>
+        <param name="generate_image" value="true"/>
+        <param name="savePath" value="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image_kitti\\"/>
+        <param name="min_dist" value="1"/>
+        <param name="max_dist" value="81"/>
+        <param name="skip_generate" value="1"/>
+        <remap from="velodyne_points" to="points_raw"/>
     </node>
 	
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
@@ -31,11 +36,14 @@
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
-        <param name="model_path" value="$(arg model_path)"/>
-        <param name="feature_cloud_path" value="$(arg feature_cloud_path)"/>
+        <param name="model_path" value="$(arg model_path)"/>        
+        <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
         <param name="map_save_path" value="$(arg map_save_path)"/>
         <param name="use_descriptor" value="true"/>
+        <param name="map_skip" value="1"/>
+        <param name="map_voxel" value="1.0"/>
+        <remap from="velodyne_points" to="points_raw"/>
 	</node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"

@@ -17,6 +17,10 @@ public:
     bool load(ros::NodeHandle& pnh)
     {
         ROS_INFO("parameter loading");
+
+        pnh.param("goal_x", goal_x_, 0.0); 
+        pnh.param("goal_y", goal_y_, 0.0); 
+        pnh.param("goal_radius", goal_radius_, 0.2); 
                   
         pnh.param<std::string>("map_save_path", map_save_path_, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
         pnh.param("use_initial_pose", use_initial_pose_, false); 
@@ -121,6 +125,8 @@ public:
     int num_particles_;
     int skip_measure_;
     
+    double goal_x_, goal_y_, goal_radius_;
+
     bool use_initial_pose_;
     double initial_x_, initial_y_, initial_z_;
 

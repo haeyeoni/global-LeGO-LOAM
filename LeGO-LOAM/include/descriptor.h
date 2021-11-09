@@ -32,12 +32,13 @@
 
 #include <torch/torch.h>
 #include <torch/script.h> 
+
 #include "utility.h"
 #include "feature_kdtree.h"
 
 
 using PointType = pcl::PointXYZI;
-
+const int featureSize = 8;
 
 namespace lego_loam
 {
@@ -45,15 +46,15 @@ namespace lego_loam
 class LocNetManager
 {
 
-typedef point<float, 8> point8d;
-typedef kdtree<float, 8> tree8d;
-
+template <typename T>
+void templated_fn(T) {}
+ 
 private:
 
     torch::jit::script::Module descriptor;
     std::ofstream featureFile;
     std::string featurePath;
-    std::shared_ptr<tree8d> tree;
+    std::shared_ptr<kdtree<float, featureSize>> tree;
 
 public: 
     LocNetManager(std::string path, bool mapping) 
@@ -66,6 +67,16 @@ public:
     {
         featureFile.close();
     }
+
+    float calculateDiff(at::Tensor currFeat, at::Tensor prevFeat)
+    {
+        float dist = 0.0;
+        for(int i = 0; i < featureSize; i ++)
+            dist += pow( currFeat[0][i].item<float>() - prevFeat[0][i].item<float>(), 2);
+        
+        return sqrt(dist);
+    }
+
     /// Mapping
     void loadModel(string modelPath)
     {
@@ -74,7 +85,7 @@ public:
             descriptor = torch::jit::load(modelPath);
         }
         catch (const c10::Error& e) {
-            ROS_ERROR("error loading the model\n: %s", e);
+            ROS_ERROR("error loading the model\n: %s", e.what());
             return;	    
         }
         ROS_INFO("Success loading model");    
@@ -175,23 +186,20 @@ public:
     void makeAndSaveLocNet(const pcl::PointCloud<PointType>::Ptr laserCloudIn, int nodeId)
     { 
         auto output = makeDescriptor(laserCloudIn);
-        featureFile << nodeId << " " 
-                    << output[0][0].item<float>() << " " 
-                    << output[0][1].item<float>() << " " 
-                    << output[0][2].item<float>() << " " 
-                    << output[0][3].item<float>() << " " 
-                    << output[0][4].item<float>() << " " 
-                    << output[0][5].item<float>() << " " 
-                    << output[0][6].item<float>() << " " 
-                    << output[0][7].item<float>() << "\n";
+        featureFile << nodeId << " ";
+        for (int i = 0; i < featureSize; i++)
+            featureFile << output[0][i].item<float>() << " "; 
+        
+        featureFile <<"\n";
+    
     }   
     
     //// 
     void loadFeatureCloud()
     {
         ifstream openFile(featurePath.data());        
-        std::vector<point8d> points;
-
+        std::vector<point<float, featureSize>> points;
+        std::cout<< "file path: "<<featurePath<<std::endl;
         if (openFile.is_open())
         {
             string line;
@@ -201,22 +209,31 @@ public:
                 float f;
                 std::vector<float> values;
                 while (iss >> f)
+                {
                     values.push_back(f);
-                points.push_back({values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]});
+                }                        
+                points.push_back( point<float, featureSize> (begin(values), end(values))); 
             }
             openFile.close();
         }
-
-        tree.reset(new tree8d(std::begin(points), std::end(points)));
+        
+        tree.reset(new kdtree<float, featureSize>(std::begin(points), std::end(points)));
         // point8d n = tree.nearest({0.0, -0.07963, 0.0193815, -0.074069, -0.0861626, -4.3218, 0.0678813, 15.4607, -0.00420333});
-        ROS_INFO("Loaded features");
+        ROS_INFO("Loaded features: %d", points.size());
     }
 
     void findCandidates(at::Tensor feature, int& nearest, float& distance)
     {
-        std::cout<< "intput tensor: " <<feature<<std::endl;
-        point8d n = tree->nearest({0.0, feature[0][0].item<float>(), feature[0][1].item<float>(), feature[0][2].item<float>(), feature[0][3].item<float>(),
-                                        feature[0][4].item<float>(), feature[0][5].item<float>(), feature[0][6].item<float>(), feature[0][7].item<float>()});
+        // std::cout<< "intput tensor: " <<feature<<std::endl;
+        
+        std::vector<float> values;
+        values.push_back(0.0);
+        for (int i=0; i < featureSize; i ++)
+        {
+            values.push_back(feature[0][i].item<float>());
+        }                        
+        
+        point<float, featureSize> n = tree->nearest(point<float, featureSize> (begin(values), end(values)));
         nearest = n.get_index();
         distance = tree->distance();
     }

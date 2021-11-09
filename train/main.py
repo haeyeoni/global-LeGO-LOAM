@@ -11,16 +11,16 @@ from train_model import *
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-feat_thresh = 0.1
-dist_thresh = 2
-margin = 20
-save_name = "./locnet_descriptor_new"
+feat_thresh = 0.01
+dist_thresh = 10 #2
+margin = 100
+save_name = "./trained_model/kitti1_"
 
 def load_data():
     n = 0
     tensor_dataset = []
     poses = [] # tx ty
-    image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image\\'
+    image_paths = 'C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image_kitti\\'
     gt_path = image_paths + "lego_loam_pose.txt" 
     f = open(gt_path, "r")
     while True:
@@ -125,6 +125,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
     with torch.no_grad():
         model.eval()
         val_loss = 0
+        min_loss = float('inf')
         for batch_idx, (data, target) in enumerate(val_loader):
             target = target if len(target) > 0 else None
             if not type(data) in (tuple, list):
@@ -151,13 +152,17 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             loss_outputs = loss_fn(*loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
             val_loss += loss.item()
-
+    
     print("test accuracy: %f (%d/%d)"%(correct/total, correct, total))
-    if epoch % 10 == 0:
+    if epoch % 500 == 0 and epoch != 0:
         traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
-        traced_script_module.save(save_name + str(epoch)+".pt")
+        traced_script_module.save(save_name + str(epoch)+"_64.pt")
 
-
+    min_loss = min(min_loss, val_loss)
+    if val_loss <= min_loss and epoch > 1000:
+        traced_script_module = torch.jit.trace(embedding_model, data[0], check_trace=False)
+        traced_script_module.save(save_name + str(epoch)+"best.pt")
+    
     return val_loss
 
 if __name__ == '__main__':
@@ -165,7 +170,7 @@ if __name__ == '__main__':
     train_dataset = SiameseDataset(dataset, True, poses, dist_thresh)
     test_dataset = SiameseDataset(dataset, False, poses, dist_thresh)
 
-    batch_size = 32
+    batch_size = 64 #32
     kwargs = {'num_workers': 3, 'pin_memory': True} if cuda else {}
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
@@ -179,6 +184,7 @@ if __name__ == '__main__':
         model.cuda()
     
     lr = 1e-3
+
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
     n_epochs = 100000

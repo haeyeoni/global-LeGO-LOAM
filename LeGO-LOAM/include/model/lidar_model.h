@@ -6,6 +6,7 @@
 #include <pointcloud_sampler.h>
 #include <pcl/filters/extract_indices.h>
 #include <normal_likelihood.h>
+#include <pcl/registration/icp.h>
 
 typedef struct
 {
@@ -158,7 +159,6 @@ public:
         }    
         return match_ratio_max;
     }
-
 };
 
 

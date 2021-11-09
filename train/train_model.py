@@ -20,7 +20,7 @@ class LocNet(nn.Module):
         self.linear1 = nn.Linear(327680, 512)
         self.linear2 = nn.Linear(512, 258)
         self.linear3 = nn.Linear(258, 126)
-        self.linear4 = nn.Linear(126, 8)
+        self.linear4 = nn.Linear(126, 64)
 
         # self.convnet = nn.Sequential(nn.Conv2d(1, 20, 3), nn.PReLU(), nn.BatchNorm2d(20), # in_channels, out_channels, kernel_size,
         #                             nn.MaxPool2d(3, stride=1),

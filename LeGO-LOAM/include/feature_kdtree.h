@@ -11,6 +11,14 @@ template<typename coordinate_type, size_t dimensions>
 class point {
 public:
     point(std::array<coordinate_type, dimensions> c) : coords_(c) {}
+    
+    template<class It>
+    point(It first, It last) {
+        idx_ = *first;
+        ++first;
+        std::copy_n(first, dimensions, coords_.begin());
+    }
+
     point(std::initializer_list<coordinate_type> list) {
         const coordinate_type* p = list.begin();
         idx_ = *p;

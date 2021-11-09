@@ -252,13 +252,13 @@ public:
     void projectPointCloud(){
         // range image projection
         // Haeyeon: changed code to save projected 'range image' and 'del range image' for training
-
         float verticalAngle, horizonAngle, range, prev_range, del_range;
         size_t rowIdn, columnIdn, index, cloudSize; 
         PointType thisPoint;
 
         int b = 80;
-        int distBucket, bucket, iCount;
+        int bucket, iCount;
+        float distBucket;
         
         cv::Mat imageCount = cv::Mat(N_SCAN, b, CV_32S, cv::Scalar::all(0));
         cv::Mat imageOne = cv::Mat(N_SCAN, b, CV_32F, cv::Scalar::all(0));
@@ -291,12 +291,11 @@ public:
                 continue;
 
             range = sqrt(thisPoint.x * thisPoint.x + thisPoint.y * thisPoint.y + thisPoint.z * thisPoint.z);
-            distBucket = (max_dist - min_dist) / b;
-
+            distBucket = (float)(max_dist - min_dist) / (float)b;
             if (range > min_dist && range < max_dist)
             {
                 for (int i=0; i < b; i ++)
-                    if (range >= (min_dist + i * distBucket) && range <= (min_dist + (i+1)*distBucket))
+                    if (range >= (min_dist + (int) i * distBucket) && range <= (min_dist + (int) (i+1) * distBucket))
                         bucket = i + 1;
             }
             else

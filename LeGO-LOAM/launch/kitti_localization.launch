@@ -3,93 +3,94 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
     
-    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\train\locnet_descriptor510.pt"/>
-    <arg name="feature_cloud_path" default="C:\Users\Haeyeon Kim\Desktop\lego_loam_result\kitti_feature_cloud.pcd"/>
-    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_key_poses.pcd"/>
+    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_new350.pt"/>
+    <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_lists.txt"/>
+    <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_key_poses.txt"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_lego_loam_map.pcd"/>
-    <arg name="use_initial_pose" default="true"/>
+    <arg name="use_initial_pose" default="false"/>
+    
 
     <!--- Run Rviz-->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lego_loam)/launch/localization.rviz" />
 
     <!--- TF -->
     <node pkg="tf" type="static_transform_publisher" name="camera_init_to_map"  args="0 0 0 1.570795   0        1.570795 /map    /camera_init 10" />
-    <node pkg="tf" type="static_transform_publisher" name="odom_to_base" args="0 0 0 -1.570795 -1.570795 0         /laser_odom /base_link   10" />
+    <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera" args="0 0 0 1.570795 1.570795 0        /camera /base_link   10" />
     <node pkg="tf" type="static_transform_publisher" name="base_to_velo" args="0 0 0 0 0 0        /base_link /velodyne   10" />
 
-    <node pkg="nodelet" type="nodelet" args="manager"
-    name="legoloam_nodelet_manager" output="screen" />
-	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
-    name="ImageProjection_loader" output="screen">
-        <remap from="velodyne_points" to="points_raw"/>
-    </node>	
+    <node pkg="nodelet" type="nodelet" args="manager"  name="legoloam_nodelet_manager" output="screen" />
+		<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
+    name="ImageProjection_loader" output="screen"/>
+	
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/FeatureAssociation legoloam_nodelet_manager"
-    name="FeatureAssociation_loader" output="screen"/>
-
+    name="FeatureAssociation_loader" output="screen">
+    <remap from="velodyne_points" to="points_raw"/>
+    </node>
+    
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
         <param name="mapping" value="false"/>
 	</node>
-    <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"
-    name="TransformFusion_loader" output="screen"/>
-
+    <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager" name="TransformFusion_loader" output="screen"/>
+    
     <!--- Initialize -->    
-    <!-- <node pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager"
-    name="GlobalLocalization_loader" output="screen">
-        <remap from="velodyne_points" to="points_raw"/>
+    <node unless="$(arg use_initial_pose)" pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager" name="GlobalLocalization_loader" output="screen">
         <param name="model_path" value="$(arg model_path)"/>
-        <param name="feature_cloud_path" value="$(arg feature_cloud_path)"/>
+        <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
-        <param name="search_radius" value="0.1"/>
-    </node> -->
-
-    <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager"
-    name="ParticleFilter3D_loader" output="screen">
+        <param name="search_radius" value="3.0"/>
         <remap from="velodyne_points" to="points_raw"/>
-        <param name="use_initial_pose" value="true"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager" name="ParticleFilter3D_loader" output="screen">
+        <!-- <param name="rot_x" value="0.0"/>
+        <param name="rot_y" value="1.570795"/>
+        <param name="rot_z" value="1.570795"/> -->
+        <remap from="velodyne_points" to="points_raw"/>
+        <param name="map_save_path" value="$(arg map_save_path)"/>        
+        <param name="use_initial_pose" value="$(arg use_initial_pose)"/>
         <param name="initial_x" value="0.0"/>
         <param name="initial_y" value="0.0"/>
-        
-        <param name="map_save_path" value="$(arg map_save_path)"/>        
-
-        <param name="num_particles" value="800"/>
-        <param name="sampling_covariance" value="0.9"/> <!--Initial convariance-->
+        <param name="init_yaw" value="0.0"/>
+        <param name="num_particles" value="1000"/>
+        <param name="sampling_covariance" value="0.8"/> <!--Initial convariance-->
         
         <param name="skip_measure" value="3"/>
-        <param name="clip_near" value="0.2"/>
-        <param name="clip_far" value="20.0"/>
+        <param name="clip_near" value="1.0"/>
+        <param name="clip_far" value="10000.0"/>
         <param name="clip_z_min" value="-2.0"/>
-        <param name="clip_z_max" value="2.0"/>
+        <param name="clip_z_max" value="15.0"/>
 
-        <param name="resample_var_x" value="0.03"/>
-        <param name="resample_var_y" value="0.03"/>
-        <param name="resample_var_yaw" value="0.01"/>
+        <param name="resample_var_x" value="0.05"/>
+        <param name="resample_var_y" value="0.05"/>
+        <param name="resample_var_yaw" value="0.1"/>
 
-        <param name="max_search_radius" value="0.2"/>
-        <param name="min_search_radius" value="0.001"/>
-        <param name="min_z_pose" value="-1.0"/>
-        <param name="max_z_pose" value="1.0"/>
+        <param name="max_search_radius" value="0.5"/>
+        <param name="min_search_radius" value="0.005"/>
+        <param name="min_z_pose" value="0.0"/>
+        <param name="max_z_pose" value="20.0"/>
 
-        <param name="expansion_var_x" value="0.5"/>
-        <param name="expansion_var_y" value="0.5"/>
+        <param name="expansion_var_x" value="1.0"/>
+        <param name="expansion_var_y" value="1.0"/>
         <param name="expansion_var_yaw" value="0.5"/>
 
         <param name="map_downsample_x" value="0.3"/>
         <param name="map_downsample_y" value="0.3"/>
         <param name="map_downsample_z" value="0.3"/>
-        <param name="map_chunk" value="300"/>
+        <param name="map_chunk" value="500"/>
         
-        <param name="odom_err_lin_lin" value="0.05"/>
-        <param name="odom_err_lin_ang" value="0.05"/>
-        <param name="odom_err_ang_lin" value="0.05"/>
-        <param name="odom_err_ang_ang" value="0.05"/>
+        <param name="odom_err_lin_lin" value="0.001"/>
+        <param name="odom_err_lin_ang" value="0.001"/>
+        <param name="odom_err_ang_lin" value="0.001"/>
+        <param name="odom_err_ang_ang" value="0.001"/>
         
         <param name="downsample_x" value="0.1"/>
         <param name="downsample_y" value="0.1"/>
         <param name="downsample_z" value="0.1"/>
-        <param name="match_ratio_thresh" value="0.5"/>     
+        <param name="match_ratio_thresh" value="0.4"/>     
     </node>
 
-
 </launch>
+
+
 

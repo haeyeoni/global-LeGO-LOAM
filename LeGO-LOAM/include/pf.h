@@ -62,7 +62,7 @@ public:
     void init(std::vector<float> poses)
     {
         std::cout<<"initializing particle filter"<<std::endl;
-        gmm_->setDistribution(poses);
+        gmm_->setDistribution(poses, 1);
 
         for (auto& p: particles_)
         {
@@ -71,6 +71,24 @@ public:
         }
         std::cout<<"finish initializing particle filter"<<std::endl;
     }
+
+    void reinit(std::vector<float> poses, float distance)
+    {
+        T mean_pose = mean();
+        
+        poses.push_back(mean_pose[0]);
+        poses.push_back(mean_pose[1]);
+        poses.push_back(mean_pose[2]);
+        
+        gmm_->setDistribution(poses, 2);
+
+        for (auto& p: particles_)
+        {
+            p.state_ = gmm_->sample();
+            p.probability_ = 1.0 / particles_.size();
+        }
+    }
+
 
     T generateNoise(T sigma)
     {

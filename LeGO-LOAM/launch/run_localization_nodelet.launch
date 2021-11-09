@@ -36,12 +36,12 @@
     
     <!--- Initialize -->    
     <node unless="$(arg use_initial_pose)" pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager" name="GlobalLocalization_loader" output="screen">
-        <param name="dist_tolerance" value="150.0"/>
+        <param name="dist_tolerance" value="50.0"/>
         <param name="model_path" value="$(arg model_path)"/>
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
-        <param name="search_radius" value="2.0"/>
-        <param name="skip_cnt" value="20"/>
+        <param name="search_radius" value="0.5"/>
+        <param name="skip_cnt" value="5"/>
     </node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager" name="ParticleFilter3D_loader" output="screen">

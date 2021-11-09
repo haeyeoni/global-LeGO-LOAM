@@ -424,17 +424,21 @@ public:
 
     void handleInitializeData(const std_msgs::Float32MultiArray::Ptr& initial_msg)
     {  
-        // if(!initialized)
-        // {
+        if (!initialized)
+        {
             std::cout<<"**********Initialization************"<<std::endl;
             pf_->init(initial_msg->data); 
             initialized = true;
-        // }
+        }     
+        else
+        {
+            pf_->reinit(initial_msg->data, initial_msg->layout.dim[0].size);
+        }
     }
 
     void handleInitializeData1(const ros::TimerEvent& event)
     {  
-        std::vector<float> pose; // x pose, y pose, similarity term
+        std::vector<float> pose; // x pose, y pose, z pose
         pose.push_back(params_.initial_x_);
         pose.push_back(params_.initial_y_);
         pose.push_back(params_.initial_z_);

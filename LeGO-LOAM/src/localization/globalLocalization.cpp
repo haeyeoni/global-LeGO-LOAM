@@ -5,6 +5,7 @@
 #include <pluginlib/class_list_macros.h>
 
 #include <std_msgs/Float32MultiArray.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <std_msgs/MultiArrayDimension.h>
 
 
@@ -23,9 +24,11 @@ private:
     LocNetManager *locnetManager;
 
     ros::Subscriber subPointCloud;
+    ros::Subscriber subPose;
     ros::Publisher pubMapCloud;
     ros::Publisher pubInitialize;
     ros::Timer timer;
+    std::mutex mtx;
 
     string modelPath;
     string featureSavePath;
@@ -36,7 +39,7 @@ private:
     pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
     std::vector<std::vector<float>> keyPoses;
     
-    std::vector<float> prevPose;
+    std::vector<float> currPose;
     bool initialized = false;
     int check_cnt = 0;
     int skip_cnt = 1;
@@ -45,7 +48,7 @@ public:
     GlobalLocalization() = default;
     void onInit()
     {
-        prevPose.reserve(3);
+        currPose.reserve(3);
         ROS_INFO("\033[1;32m---->\033[0m Global Localization Started.");  
 
         ros::NodeHandle nh = getNodeHandle();
@@ -64,7 +67,17 @@ public:
         locnetManager->loadFeatureCloud();
         loadKeyPose();     
         pubInitialize = nh.advertise<std_msgs::Float32MultiArray>("/initialize_data", 1);
+        
         subPointCloud = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 10, &GlobalLocalization::handlePointCloud, this);        
+        subPose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &GlobalLocalization::updatePose, this);        
+    }
+
+    void updatePose(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        currPose[0] = msg->pose.pose.position.x;
+        currPose[1] = msg->pose.pose.position.y;
+        currPose[2] = msg->pose.pose.position.z;
     }
 
     void loadKeyPose()
@@ -89,6 +102,7 @@ public:
 
     void handlePointCloud(const sensor_msgs::PointCloud2ConstPtr& msg)
     {
+        std::lock_guard<std::mutex> lock(mtx);
         pcl::PointCloud<PointType>::Ptr laserCloudRaw(new pcl::PointCloud<PointType>());
         pcl::fromROSMsg(*msg, *laserCloudRaw);
 
@@ -115,18 +129,13 @@ public:
                 
                 initialPoseMsg.data = poseData; // data: x pose, y pose, z pose
                 initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
-                initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
-                initialPoseMsg.layout.dim[0].label = "similarity_sum";
+                initialPoseMsg.layout.dim[0].label = "distance";
                 initialPoseMsg.layout.dim[0].size = distance;
-                initialPoseMsg.layout.dim[1].label = "length";
-                initialPoseMsg.layout.dim[1].size = 1;
+                
                 pubInitialize.publish(initialPoseMsg); 
                 ROS_INFO_ONCE("Initialized");
                 initialized = true;
             }
-
-            for (int i = 0; i < 3; i ++)
-                prevPose[i] = poseData[i];
         }
         // After initialized: check distance between the previous cloud
         
@@ -145,21 +154,25 @@ public:
                 poseData[0] = keyPoses[nnode][1]; // x
                 poseData[1] = keyPoses[nnode][2]; // y
                 poseData[2] = keyPoses[nnode][3]; // z
-            }
-            // calculate the distance between the previous pose
-            float dist = 0;
-            for (int i = 0; i < 3; i ++)
-                dist += pow(prevPose[i]-poseData[i], 2);
+            
+                // calculate the distance between the previous pose
+                float dist = 0;
+                for (int i = 0; i < 3; i ++)
+                    dist += pow(currPose[i]-poseData[i], 2);
 
-            std::cout<<"distance: "<<sqrt(dist)<<std::endl;
-            if (sqrt(dist) > dist_tolerance)
-            {
-                std::cout<<"Big time !!!!!!!!!!!!!!!!!!!!!!!"<<sqrt(dist)<<std::endl;
-                initialized = false;
-            }
+                std::cout<<"distance: "<<sqrt(dist)<<std::endl;
+                if (sqrt(dist) > dist_tolerance)
+                {
+                    std::cout<<"Might be kidnapped!"<<sqrt(dist)<<std::endl;
+                    initialPoseMsg.data = poseData; // data: x pose, y pose, z pose
+                    initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+                    initialPoseMsg.layout.dim[0].label = "distance";
+                    initialPoseMsg.layout.dim[0].size = distance;
+                    
+                    pubInitialize.publish(initialPoseMsg); 
+                }
 
-            for (int i = 0; i < 3; i ++)
-                prevPose[i] = poseData[i];
+            }
         }
         
     }

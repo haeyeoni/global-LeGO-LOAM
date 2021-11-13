@@ -166,6 +166,7 @@ private:
     
     // Haeyeon
     pcl::VoxelGrid<PointType> downSizeSaveMap; // for saving map
+    double static_move;
 
     double timeLaserCloudCornerLast;
     double timeLaserCloudSurfLast;
@@ -253,6 +254,7 @@ public:
 		ros::NodeHandle nhp = getPrivateNodeHandle();
         
         // haeyeon: LOADING MODEL
+        nhp.param<double>("static_move", static_move, 0.01);
         nhp.param<double>("map_voxel", map_voxel, 1.0);
         nhp.param<int>("map_skip", map_skip, 10);
         nhp.param<std::string>("model_path", model_path, "C:\\opt\\ros\\melodic\\test_ws\\src\\global-LeGO-LOAM\\train\\locnet_descriptor510.pt"); 
@@ -306,10 +308,10 @@ public:
         downSizeSaveMap.setLeafSize(map_voxel, map_voxel, map_voxel);
 
         odomAftMapped.header.frame_id = "camera_init";
-        odomAftMapped.child_frame_id = "/aft_mapped";
+        odomAftMapped.child_frame_id = "aft_mapped";
 
         aftMappedTrans.frame_id_ = "camera_init";
-        aftMappedTrans.child_frame_id_ = "/aft_mapped";
+        aftMappedTrans.child_frame_id_ = "aft_mapped";
     
         allocateMemory(); 
         timer = nhp.createTimer(ros::Duration(0.005), boost::bind(&MapOptimization::run, this, _1));        
@@ -514,9 +516,17 @@ public:
 
     void transformUpdate()
     {
-        transformTobeMapped[0] = 0.0;
-        transformTobeMapped[2] = 0.0;
-        transformTobeMapped[4] = 0.0;
+        // for stable localization
+        transformTobeMapped[0] = 0.0; // pitch
+        transformTobeMapped[2] = 0.0; // roll
+        transformTobeMapped[4] = 0.0; // z
+
+        if (transformTobeMapped[3] < 0.03 && transformTobeMapped[5] < 0.03) // not moving
+        {
+            transformTobeMapped[3] = 0.0; // x
+            transformTobeMapped[5] = 0.0; // y
+            transformTobeMapped[1] = 0.0; // yaw
+        }
         
 		if (imuPointerLast >= 0) {
 		    float imuRollLast = 0, imuPitchLast = 0;

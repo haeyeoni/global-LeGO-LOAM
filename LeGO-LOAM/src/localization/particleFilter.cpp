@@ -50,6 +50,7 @@
 #include <model/odom_model.h>
 #include <model/lidar_model.h>
 #include <parameter.h>
+#include <pf_kdtree.h>
 
 using PointType = pcl::PointXYZ; // with intensity
 using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
@@ -158,8 +159,8 @@ public:
         else
             subInitialize = nh.subscribe("/initialize_data", 10, &ParticleFilter3D::handleInitializeData, this);
 
-        subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);
-        subLaserOdometry = nh.subscribe("/integrated_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
+        // subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);
+        // subLaserOdometry = nh.subscribe("/integrated_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
 
         pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 5, true);
         pubParticles = nh.advertise<geometry_msgs::PoseArray>("/particles", 100, true);
@@ -372,11 +373,8 @@ public:
         
         // 6. Correction Step with Lidar model
         float match_ratio_max;
-        // if (in_boundary_)
-        //     match_ratio_max = lidar_model_->measureCorrectICP(pf_, pc_locals, global_map_, origins);
-        // else
         match_ratio_max = lidar_model_->measureCorrect(pf_, pc_locals, origins);
-        // std::cout<<"match ratio: "<< match_ratio_max <<std::endl;
+
         if (match_ratio_max < params_.match_ratio_thresh_)
         {
             ROS_WARN_THROTTLE(3.0, "Low match ratio. Expansion resetting"); //every 3.0 seconds
@@ -449,6 +447,7 @@ public:
             pf_->init(pose);
             initialized = true;
         }
+           
     }
 
     void publishParticles(const ros::TimerEvent& event)

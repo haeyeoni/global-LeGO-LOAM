@@ -13,6 +13,7 @@
 #include <chunked_kdtree.h>
 #include <gaussianMixture.h>
 #include <normal_likelihood.h>
+#include <pf_kdtree.h>
 template <typename T> // T: state type
 class Particle 
 {
@@ -31,6 +32,7 @@ public:
     float probability_bias_;
     float accum_probability_;
 
+
     bool operator<(const Particle& p2) const
     {
         return this->accum_probability_ < p2.accum_probability_;
@@ -41,6 +43,15 @@ public:
 template <typename T> // T: PoseState
 class ParticleFilter
 {
+typedef struct
+{
+    int count;
+    double weight;
+    T meanPose;
+    double m[4], c[2][2];
+    double cov[3][3];
+} pf_cluster_t;
+
 public:
     using Ptr = std::shared_ptr<ParticleFilter>;
     using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
@@ -48,27 +59,38 @@ public:
 
     std::vector<Particle<T>> particles_;
     std::vector<Particle<T>> particles_dup_;
+    T pf_mean_pose_;
     std::random_device random_seed;
     std::default_random_engine engine_;
+    std::vector<pf_cluster_t> clusters;
+    pf_kdtree_t *kdtree;
+    int cluster_max_count;
+    double m[4], c[2][2];
+    double cov[3][3];
 
     GaussianMixture<PoseState>::Ptr gmm_;
 
     explicit ParticleFilter(const int num_particles, const double sampling_covariance)
     {
         particles_.resize(num_particles);
-        gmm_.reset(new GaussianMixture<PoseState>(sampling_covariance));        
+        gmm_.reset(new GaussianMixture<PoseState>(sampling_covariance)); 
+        kdtree = pf_kdtree_alloc(3 * num_particles);        
     }
 
     void init(std::vector<float> poses)
     {
         std::cout<<"initializing particle filter"<<std::endl;
-        gmm_->setDistribution(poses, 1);
+        cluster_max_count = particles_.size();
+        pf_kdtree_clear(kdtree);
 
+        gmm_->setDistribution(poses, 1);
         for (auto& p: particles_)
         {
             p.state_ = gmm_->sample();
             p.probability_ = 1.0 / particles_.size();
+            pf_kdtree_insert(kdtree, p.state_, 1.0 / particles_.size());
         }
+        pf_cluster_stats();
         std::cout<<"finish initializing particle filter"<<std::endl;
     }
 
@@ -76,6 +98,8 @@ public:
     {
         T mean_pose = mean();
         
+        pf_kdtree_clear(kdtree);
+
         poses.push_back(mean_pose[0]);
         poses.push_back(mean_pose[1]);
         poses.push_back(mean_pose[2]);
@@ -86,7 +110,135 @@ public:
         {
             p.state_ = gmm_->sample();
             p.probability_ = 1.0 / particles_.size();
+            pf_kdtree_insert(kdtree, p.state_, 1.0 / particles_.size());
         }
+        pf_cluster_stats();
+    }
+
+    void pf_cluster_stats()
+    {
+        int i, j, k, cidx;
+        // Workspace
+        size_t count;
+        double weight;
+        // Cluster the samples
+        pf_kdtree_cluster(kdtree);
+
+        // Initialize cluster stats
+        int cluster_count = 0;
+
+        pf_cluster_t *cluster;
+
+        for (i = 0; i < cluster_max_count; i++)
+        {
+            pf_cluster_t cluster_new;
+            cluster_new.count = 0;
+            cluster_new.weight = 0;
+            cluster_new.meanPose = T();
+
+            for (j = 0; j < 4; j++)
+                cluster_new.m[j] = 0.0;
+
+            for (j = 0; j < 2; j++)
+                for (k = 0; k < 2; k++)
+                    cluster_new.c[j][k] = 0.0;
+            clusters.push_back(cluster_new);
+        }
+
+        // Initialize overall filter stats
+        count = 0;
+        weight = 0.0;
+        pf_mean_pose_ = T();
+
+        // Compute cluster stats
+        printf("cluster computing\n");
+        for (auto& p: particles_)
+        {
+           // Get the cluster label for this sample
+            cidx = pf_kdtree_get_cluster(kdtree, p.state_);
+            printf("cidx: %d\n", cidx);
+
+            assert(cidx >= 0);
+            if (cidx >= cluster_max_count)
+                continue;
+            if (cidx + 1 > cluster_count)
+                cluster_count = cidx + 1;
+            
+            cluster = & clusters[cidx];
+
+            cluster->count += 1;
+            cluster->weight += p.probability_;
+
+            count += 1;
+            weight += p.probability_;
+
+            // // Compute mean
+            cluster->m[0] += p.probability_ * p.state_.pose_.x_; // sample->pose.v[0];
+            cluster->m[1] += p.probability_ * p.state_.pose_.y_; //sample->pose.v[1];
+            cluster->m[2] += p.probability_ * cos(p.state_.rot_.getRPY().z_); // cos(sample->pose.v[2]);
+            cluster->m[3] += p.probability_ * sin(p.state_.rot_.getRPY().z_); // sin(sample->pose.v[2]);
+
+            m[0] += p.probability_ * p.state_.pose_.x_; // sample->pose.v[0];
+            m[1] += p.probability_ * p.state_.pose_.y_; //sample->pose.v[1];
+            m[2] += p.probability_ * cos(p.state_.rot_.getRPY().z_); // cos(sample->pose.v[2]);
+            m[3] += p.probability_ * sin(p.state_.rot_.getRPY().z_); // cos(sample->pose.v[2]);
+    
+
+            cluster->c[0][0] += p.probability_ * p.state_.pose_.x_ * p.state_.pose_.x_;
+            c[0][0] += p.probability_ * p.state_.pose_.x_ * p.state_.pose_.x_;
+
+            cluster->c[0][1] += p.probability_ * p.state_.pose_.x_ * p.state_.pose_.x_;
+            c[0][1] += p.probability_ * p.state_.pose_.y_ * p.state_.pose_.x_;
+
+            cluster->c[1][0] += p.probability_ * p.state_.pose_.y_ * p.state_.pose_.x_;
+            c[1][0] += p.probability_ * p.state_.pose_.y_ * p.state_.pose_.x_;
+
+            cluster->c[1][1] += p.probability_ * p.state_.pose_.y_ * p.state_.pose_.y_;
+            c[1][1] += p.probability_ * p.state_.pose_.y_ * p.state_.pose_.y_;
+        }
+
+        // Normalize
+        for (i = 0; i < cluster_count; i++)
+        {
+            cluster = & clusters[i];
+
+            cluster->meanPose = T(Vec3(cluster->m[0] / cluster->weight, cluster->m[1] / cluster->weight, 0), Vec3(0, 0, atan2(cluster->m[3], cluster->m[2])));
+            for (j = 0; j < 3; j++)
+                for (k = 0; k < 3; k++)
+                    cluster->cov[j][k] = 0.0;
+            // Covariance in linear components
+            cluster->cov[0][0] = cluster->c[0][0] / cluster->weight - cluster->meanPose.pose_.x_ * cluster->meanPose.pose_.x_;
+            cluster->cov[0][1] = cluster->c[0][1] / cluster->weight - cluster->meanPose.pose_.x_ * cluster->meanPose.pose_.y_;
+            cluster->cov[1][0] = cluster->c[1][0] / cluster->weight - cluster->meanPose.pose_.x_ * cluster->meanPose.pose_.y_;
+            cluster->cov[1][1] = cluster->c[1][1] / cluster->weight - cluster->meanPose.pose_.y_ * cluster->meanPose.pose_.y_;
+
+
+            // Covariance in angular components; I think this is the correct
+            // formula for circular statistics.
+            cluster->cov[2][2] = -2 * log(sqrt(cluster->m[2] * cluster->m[2] +
+                                                cluster->m[3] * cluster->m[3]));
+
+        }
+
+        assert(fabs(weight) >= DBL_EPSILON);
+        if (fabs(weight) < DBL_EPSILON)
+        {
+            printf("ERROR : divide-by-zero exception : weight is zero\n");
+            return;
+        }
+        // Compute overall filter stats
+        pf_mean_pose_ = T(Vec3(m[0] / weight, m[1] / weight, 0), Vec3(0,0,atan2(m[3], m[2])));
+        // Covariance in linear components
+        cov[0][0] = c[0][0] / weight - pf_mean_pose_.pose_.x_ * pf_mean_pose_.pose_.x_;
+        cov[0][1] = c[0][1] / weight - pf_mean_pose_.pose_.x_ * pf_mean_pose_.pose_.y_;
+        cov[1][0] = c[1][0] / weight - pf_mean_pose_.pose_.x_ * pf_mean_pose_.pose_.y_;
+        cov[1][1] = c[1][1] / weight - pf_mean_pose_.pose_.y_ * pf_mean_pose_.pose_.y_;
+
+        // Covariance in angular components; I think this is the correct
+        // formula for circular statistics.
+        cov[2][2] = -2 * log(sqrt(m[2] * m[2] + m[3] * m[3]));
+
+        return;
     }
 
 
@@ -180,8 +332,9 @@ public:
         return mean_state;
     }
 
-    T biasedMean(PoseState& prev_s, int num_particles, float bias_var_dist, float bias_var_ang)
+    T biasedMean(T& prev_s, int num_particles, float bias_var_dist, float bias_var_ang)
     {
+        // 1. calculate main clusters
         float p_bias;
         if (particles_.size() < num_particles)
             for (auto& p : particles_)
@@ -293,6 +446,7 @@ public:
     void resample(T sigma)
     {
         float accum = 0; // for sampling
+        double total = 0;
 
         for (auto& p : particles_)
         {
@@ -306,18 +460,40 @@ public:
         const float step = accum / particles_.size(); 
         const float initial_p = std::uniform_real_distribution<float>(0.0, step)(engine_); //first particle (random) (0 < random < step)
         auto it = particles_dup_.begin(); // first particle
-        auto it_prev = particles_dup_.begin(); //first particle 
-        const float prob = 1.0 / particles_.size(); // uniform probability 
+        auto it_prev = particles_dup_.begin(); //first particle  
 
         for (size_t i = 0; i < particles_.size(); ++i)
         {
             auto& p = particles_[i];
             const float p_scan = step * i + initial_p;
             it = std::lower_bound(it, particles_dup_.end(), Particle<T> (p_scan)); // lower_bound(arr, arr+n, key)
-            p.probability_ = prob; // reset the probability
+            p.probability_ = 1.0; // reset the probability
             p.state_ = it->state_ + generateNoise(sigma);
             it_prev = it;
+
+            total += p.probability_;
+
+            // // Add sample to histogram
+            // pf_kdtree_insert(set_b->kdtree, sample_b->pose, sample_b->weight);
+
+            // // See if we have enough samples yet
+            // if (set_b->sample_count > pf_resample_limit(pf, set_b->kdtree->leaf_count))
+            //     break;
         }
+
+        // Normalize weights
+        for (size_t i = 0; i < particles_.size(); i++)
+        {
+            auto& p = particles_[i];
+            p.probability_ /= total;
+        }
+        
+        // Re-compute cluster statistics
+        pf_cluster_stats();
+
+        // Use the newly created sample set
+        // pf->current_set = (pf->current_set + 1) % 2; 
+
     }
 
     void updateNoise(float noise_ll, float noise_la, float noise_al, float noise_aa)

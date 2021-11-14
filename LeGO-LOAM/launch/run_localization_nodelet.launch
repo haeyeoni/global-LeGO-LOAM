@@ -59,7 +59,7 @@
         <!-- <param name="sampling_covariance" value="0.8"/> -->
         
         <param name="sampling_covariance" value="3.0"/>
-        <param name="skip_measure" value="3"/>
+        <param name="skip_measure" value="5"/>
         <param name="clip_near" value="1.0"/>
         <param name="clip_far" value="10000.0"/>
         <param name="clip_z_min" value="-2.0"/>

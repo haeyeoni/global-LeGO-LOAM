@@ -52,6 +52,18 @@ typedef struct
     double cov[3][3];
 } pf_cluster_t;
 
+typedef struct
+{
+  // Total weight (weights sum to 1)
+  double weight;
+
+  // Mean of pose esimate
+  T pf_pose_mean;
+
+  // Covariance of pose estimate
+  double pf_pose_cov[3][3];
+} pose_hyp_t;
+
 public:
     using Ptr = std::shared_ptr<ParticleFilter>;
     using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
@@ -65,7 +77,7 @@ public:
     std::default_random_engine engine_;
     std::vector<pf_cluster_t> clusters;
     pf_kdtree_t *kdtree;
-    int cluster_max_count;
+    int cluster_max_count, cluster_count;
     int num_particles_, max_particles_, min_particles_;
     double m[5], c[2][2];
     double cov[3][3];
@@ -142,7 +154,7 @@ public:
         // Cluster the samples
         pf_kdtree_cluster(kdtree);
         // Initialize cluster stats
-        int cluster_count = 0;
+        cluster_count = 0;
 
         pf_cluster_t *cluster;
 
@@ -354,58 +366,127 @@ public:
         return mean_state;
     }
 
+    // Get the statistics for a particular cluster.
+    int pf_get_cluster_stats(int clabel, double *weight,
+                            T *mean_pose, double (*cov)[3][3])
+    {
+        if (clabel >= cluster_count)
+            return 0;
+        pf_cluster_t *cluster = &(clusters[clabel]);
+
+        *weight = cluster->weight;
+        *mean_pose = cluster->meanPose;
+        for (int i = 0; i < 3; i ++)
+            for (int j = 0; j < 3; j ++)
+                *cov[i][j] = cluster->cov[i][j];
+
+        return 1;
+    }
+
     T biasedMean(T& prev_s, float bias_var_dist, float bias_var_ang)
     {
-        // 1. calculate main clusters
-        float p_bias;
-        Particle<T> *p;
-        // if (num_particles_ < num_particles)
+        // read hypotheses
+        double max_weight = 0.0;
+        int max_weight_hyp = -1;
+        std::vector<pose_hyp_t> hyps;
+        hyps.resize(cluster_count);
+        for(int hyp_cnt = 0; hyp_cnt < cluster_count; hyp_cnt ++)
+        {
+            double weight;
+            T pose_mean = T();
+            double pose_cov[3][3];
+            
+            if (!pf_get_cluster_stats(hyp_cnt, &weight, &pose_mean, &pose_cov))
+            {
+                ROS_ERROR("Couldn't get stats on cluster %d", hyp_cnt);
+                break;
+            }
+
+            hyps[hyp_cnt].weight = weight;
+            hyps[hyp_cnt].pf_pose_mean = pose_mean;
+            // hyps[hyp_cnt].pf_pose_cov = pose_cov;
+
+            for (int i = 0; i < 3; i ++)
+                for (int j = 0; j < 3; j ++)
+                    hyps[hyp_cnt].pf_pose_cov[i][j] = pose_cov[i][j];
+
+            if(hyps[hyp_cnt].weight > max_weight)
+            {
+                max_weight = hyps[hyp_cnt].weight;
+                max_weight_hyp = hyp_cnt;
+            }
+        }
+    
+    // if(max_weight > 0.0)
+    // {
+
+        // geometry_msgs::PoseWithCovarianceStamped p;
+        // // Fill in the header
+        // p.header.frame_id = global_frame_id_;
+        // p.header.stamp = laser_scan->header.stamp;
+        // // Copy in the pose
+        // p.pose.pose.position.x = hyps[max_weight_hyp].pf_pose_mean.v[0];
+        // p.pose.pose.position.y = hyps[max_weight_hyp].pf_pose_mean.v[1];
+
+        // tf2::Quaternion q;
+        // q.setRPY(0, 0, hyps[max_weight_hyp].pf_pose_mean.v[2]);
+        // tf2::convert(q, p.pose.pose.orientation);
+        // // Copy in the covariance, converting from 3-D to 6-D
+        // pf_sample_set_t* set = pf_->sets + pf_->current_set;
+        // for(int i=0; i<2; i++)
         // {
-        //     for (int i = 0; i < num_particles_; i ++)
+        //     for(int j=0; j<2; j++)
         //     {
-        //         p = &particles_[i];
-        //         p->probability_bias_ = 1.0;
+        //     p.pose.covariance[6*i+j] = set->cov.m[i][j];
         //     }
         // }
-        // else
+        // p.pose.covariance[6*5+5] = set->cov.m[2][2];
+    
+
+
+    //////////////////// prev /////////////////////
+        // float p_bias;
+        // Particle<T> *p;
+        // NormalLikelihood nl_lin(bias_var_dist);
+        // NormalLikelihood nl_ang(bias_var_ang);
+        // for (int i = 0; i < num_particles_; i ++)
         // {
-        NormalLikelihood nl_lin(bias_var_dist);
-        NormalLikelihood nl_ang(bias_var_ang);
-        for (int i = 0; i < num_particles_; i ++)
-        {
-            p = &particles_[i];
-            const float lin_diff = (p->state_.pose_ - prev_s.pose_).norm(); // linear movement 
-            Vec3 axis;
-            float ang_diff;
-            (p->state_.rot_ * prev_s.rot_.inv()).getAxisAng(axis, ang_diff); // angular movement                 
-            p_bias = nl_lin(lin_diff) * nl_ang(ang_diff) + 1e-6;
-            assert(std::isfinite(p_bias));
-            p->probability_bias_ = p_bias;  
-        }
+        //     p = &particles_[i];
+        //     const float lin_diff = (p->state_.pose_ - prev_s.pose_).norm(); // linear movement 
+        //     Vec3 axis;
+        //     float ang_diff;
+        //     (p->state_.rot_ * prev_s.rot_.inv()).getAxisAng(axis, ang_diff); // angular movement                 
+        //     p_bias = nl_lin(lin_diff) * nl_ang(ang_diff) + 1e-6;
+        //     assert(std::isfinite(p_bias));
+        //     p->probability_bias_ = p_bias;  
         // }
 
-        T biased_mean_state = T();
+        // T biased_mean_state = T();
 
-        float p_sum = 0.0;
+        // float p_sum = 0.0;
 
-        Vec3 front_sum, up_sum;
+        // Vec3 front_sum, up_sum;
 
-        for (int i = 0; i < num_particles_; i ++)
-        {
-            p = &particles_[i];
-            p_sum += p->probability_ * p->probability_bias_;
+        // for (int i = 0; i < num_particles_; i ++)
+        // {
+        //     p = &particles_[i];
+        //     p_sum += p->probability_ * p->probability_bias_;
 
-            T temp = p->state_;
+        //     T temp = p->state_;
 
-            front_sum += temp.rot_ * Vec3(1.0, 0.0, 0.0) * p->probability_ * p->probability_bias_;
-            up_sum += temp.rot_ * Vec3(0.0, 0.0, 1.0) * p->probability_ * p->probability_bias_;
-            for (size_t i = 0; i < biased_mean_state.size(); i ++)
-                biased_mean_state[i] += temp[i] * (p->probability_ * p->probability_bias_);
-        }    
+        //     front_sum += temp.rot_ * Vec3(1.0, 0.0, 0.0) * p->probability_ * p->probability_bias_;
+        //     up_sum += temp.rot_ * Vec3(0.0, 0.0, 1.0) * p->probability_ * p->probability_bias_;
+        //     for (size_t i = 0; i < biased_mean_state.size(); i ++)
+        //         biased_mean_state[i] += temp[i] * (p->probability_ * p->probability_bias_);
+        // }    
             
-        assert(p_sum > 0.0);
-        biased_mean_state = biased_mean_state / p_sum;
-        biased_mean_state.rot_ = Quat(front_sum, up_sum);
+        // assert(p_sum > 0.0);
+        // biased_mean_state = biased_mean_state / p_sum;
+        // biased_mean_state.rot_ = Quat(front_sum, up_sum);
+        // return biased_mean_state;
+
+        T biased_mean_state = T();
+        biased_mean_state = hyps[max_weight_hyp].pf_pose_mean;
         return biased_mean_state;
     }
 

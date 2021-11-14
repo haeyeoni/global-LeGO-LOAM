@@ -30,20 +30,22 @@ public:
     
     void motionPredict(ParticleFilter<PoseState>::Ptr pf)
     {
-        for (auto& p : pf->particles_)
+        Particle<PoseState> *p;
+        for (int i = 0; i < pf->num_particles_; i++)
         {
+            p = &(pf->particles_[i]); 
             // Position & angle update and noise calcuation     
-            const Vec3 diff = relative_translation_ * (1.0 + p.state_.noise_ll_) + Vec3(p.state_.noise_al_ * relative_angle_, 0.0, 0.0); // linear translation with noise considered
-            p.state_.odom_lin_err_ += (diff - relative_translation_); // only noise: rel_translation * noise_ll + relative_angle * noise_al
+            const Vec3 diff = relative_translation_ * (1.0 + p->state_.noise_ll_) + Vec3(p->state_.noise_al_ * relative_angle_, 0.0, 0.0); // linear translation with noise considered
+            p->state_.odom_lin_err_ += (diff - relative_translation_); // only noise: rel_translation * noise_ll + relative_angle * noise_al
             
-            p.state_.pose_ += p.state_.rot_ * diff;
-            p.state_.pose_.z_ = std::max( std::min(p.state_.pose_.z_, max_z_pose_), min_z_pose_ );
-            const float yaw_diff = p.state_.noise_la_ * relative_translation_norm_ + p.state_.noise_aa_ * relative_angle_; // angular translation noise in z-axis
-            p.state_.rot_ = Quat(Vec3(0.0, 0.0, 1.0), yaw_diff) * p.state_.rot_ * relative_quat_;
-            p.state_.rot_.normalize();                                                                     
-            p.state_.odom_ang_err_ += Vec3(0.0, 0.0, yaw_diff);            
-            p.state_.odom_lin_err_ *= (1.0 - time_diff_ / odom_lin_err_tc_); // if time_diff == tc -> error = 0 
-            p.state_.odom_ang_err_ *= (1.0 - time_diff_ / odom_ang_err_tc_);
+            p->state_.pose_ += p->state_.rot_ * diff;
+            p->state_.pose_.z_ = std::max( std::min(p->state_.pose_.z_, max_z_pose_), min_z_pose_ );
+            const float yaw_diff = p->state_.noise_la_ * relative_translation_norm_ + p->state_.noise_aa_ * relative_angle_; // angular translation noise in z-axis
+            p->state_.rot_ = Quat(Vec3(0.0, 0.0, 1.0), yaw_diff) * p->state_.rot_ * relative_quat_;
+            p->state_.rot_.normalize();                                                                     
+            p->state_.odom_ang_err_ += Vec3(0.0, 0.0, yaw_diff);            
+            p->state_.odom_lin_err_ *= (1.0 - time_diff_ / odom_lin_err_tc_); // if time_diff == tc -> error = 0 
+            p->state_.odom_ang_err_ *= (1.0 - time_diff_ / odom_ang_err_tc_);
         }
     }
 

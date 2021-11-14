@@ -9,7 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <cfloat>
- 
+#include <stdlib.h>
 
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
@@ -114,10 +114,9 @@ private:
     // flag
     size_t cnt_measure_;
     bool map_rotated_;
-    bool in_boundary_; 
 
 public:
-    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false), in_boundary_(false) {}
+    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false) {}
 
     void onInit() 
     {       
@@ -142,7 +141,7 @@ public:
         loaded_map = true;
         
         // reset particle filter and model 
-        pf_.reset(new ParticleFilter<PoseState>(params_.num_particles_, params_.sampling_covariance_)); 
+        pf_.reset(new ParticleFilter<PoseState>(params_.max_particles_, params_.min_particles_, params_.sampling_covariance_, params_.pop_err_, params_.pop_z_)); 
         odom_model_.reset(new OdomModel(params_.odom_lin_err_sigma_, params_.odom_ang_err_sigma_, params_.odom_lin_err_tc_, params_.odom_ang_err_tc_,
                                         params_.max_z_pose_, params_.min_z_pose_));
         lidar_model_.reset(new LidarModel(params_.num_points_, params_.num_points_global_, params_.max_search_radius_, params_.min_search_radius_, 
@@ -159,8 +158,8 @@ public:
         else
             subInitialize = nh.subscribe("/initialize_data", 10, &ParticleFilter3D::handleInitializeData, this);
 
-        // subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);
-        // subLaserOdometry = nh.subscribe("/integrated_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
+        subPointCloud = nh.subscribe("/velodyne_points", 10, &ParticleFilter3D::handlePointCloud, this);
+        subLaserOdometry = nh.subscribe("/integrated_to_init", 100, &ParticleFilter3D::handleLaserOdometry, this);
 
         pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 5, true);
         pubParticles = nh.advertise<geometry_msgs::PoseArray>("/particles", 100, true);
@@ -353,11 +352,11 @@ public:
         ds.filter(*pc_local_full_);
         
         pcl::PointCloud<PointType>::Ptr pc_locals; 
-        lidar_model_->setParticleNumber(params_.num_particles_, pf_->getParticleSize()); // Modify number of particles
+        lidar_model_->setParticleNumber(params_.max_particles_, pf_->getParticleSize()); // Modify number of particles
         
         // 4. Calculate the particle filter statistics: mean and covariance 
         const PoseState prev_mean = pf_->mean();
-        const float cov_ratio = std::max(0.1f, static_cast<float>(params_.num_particles_) / pf_->getParticleSize());
+        const float cov_ratio = std::max(0.1f, static_cast<float>(params_.max_particles_) / pf_->getParticleSize());
         const std::vector<PoseState> prev_cov = pf_->covariance(cov_ratio); 
         
         // 5. Random sample with normal distribution
@@ -391,24 +390,18 @@ public:
         pf_-> updateNoise(params_.odom_err_lin_lin_, params_.odom_err_lin_ang_,
                         params_.odom_err_ang_lin_, params_.odom_err_ang_ang_);
 
-        auto biased_mean = pf_->biasedMean(odom_prev_, params_.num_particles_, params_.bias_var_dist_, params_.bias_var_ang_); 
+        // auto biased_mean = pf_->biasedMean(odom_prev_, params_.num_particles_, params_.bias_var_dist_, params_.bias_var_ang_); 
+        auto biased_mean = pf_->biasedMean(odom_prev_, params_.bias_var_dist_, params_.bias_var_ang_); 
         biased_mean.rot_.normalize();
 
         assert(std::isfinite(biased_mean.pose_.x_) && std::isfinite(biased_mean.pose_.y_) && std::isfinite(biased_mean.pose_.z_) &&
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
         
+        ///////
+        std::cout<<"particle number: "<< pf_->num_particles_<<std::endl;
+
         publishPose(biased_mean, header);  
-        
-        // Check the goal pose
-        if (pow(biased_mean.pose_.x_ - params_.goal_x_, 2) + pow(biased_mean.pose_.y_ - params_.goal_y_, 2) < pow(params_.goal_radius_, 2))
-        {
-            ROS_INFO("WITHIN GOAL BOUNDARY. CHANGE TO ICP");
-            in_boundary_ = true;
-        }
-        else 
-        {
-            in_boundary_ = false;
-        }
+
         // 7. Publish map tf
         ros::Time localized_current = ros::Time::now();
         float dt = (localized_current - localized_last_).toSec();
@@ -449,7 +442,7 @@ public:
         }
            
     }
-
+    
     void publishParticles(const ros::TimerEvent& event)
     {
         if(initialized)
@@ -495,7 +488,7 @@ public:
         pose.pose.pose.orientation.y = biased_mean.rot_.y_;
         pose.pose.pose.orientation.z = biased_mean.rot_.z_;
         pose.pose.pose.orientation.w = biased_mean.rot_.w_;
-        auto cov = pf_->covariance(std::max(0.1f, static_cast<float>(params_.num_particles_)/pf_->getParticleSize()));
+        auto cov = pf_->covariance(std::max(0.1f, static_cast<float>(params_.max_particles_)/pf_->getParticleSize()));
         for (size_t i = 0; i < 36; i ++)
             pose.pose.covariance[i] = cov[i / 6][i % 6];
         pubPose.publish(pose);

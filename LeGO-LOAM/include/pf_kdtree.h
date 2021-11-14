@@ -150,7 +150,6 @@ void pf_kdtree_insert(pf_kdtree_t *self, PoseState pose, double value)
     key[0] = floor(pose.pose_.x_ / self->size[0]);
     key[1] = floor(pose.pose_.y_ / self->size[1]);
     key[2] = floor(pose.rot_.getRPY().z_ / self->size[2]); // yaw
-
     self->root = pf_kdtree_insert_node(self, NULL, self->root, key, value);
 
     return;
@@ -186,7 +185,6 @@ int pf_kdtree_get_cluster(pf_kdtree_t *self, PoseState pose)
     key[0] = floor(pose.pose_.x_ / self->size[0]);
     key[1] = floor(pose.pose_.y_ / self->size[1]);
     key[2] = floor(pose.rot_.getRPY().z_ / self->size[2]); // yaw
-
     node = pf_kdtree_find_node(self, self->root, key);
     if (node == NULL)
         return -1;
@@ -307,7 +305,7 @@ pf_kdtree_node_t *pf_kdtree_find_node(pf_kdtree_t *self, pf_kdtree_node_t *node,
 {
     if (node->leaf)
     {
-        //printf("find  : leaf %p %d %d %d\n", node, node->key[0], node->key[1], node->key[2]);
+        // printf("find  : leaf %p %d %d %d\n", node, node->key[0], node->key[1], node->key[2]);
 
         // If the keys are the same...
         if (pf_kdtree_equal(self, key, node->key))
@@ -317,7 +315,7 @@ pf_kdtree_node_t *pf_kdtree_find_node(pf_kdtree_t *self, pf_kdtree_node_t *node,
     }
     else
     {
-        //printf("find  : brch %p %d %f\n", node, node->pivot_dim, node->pivot_value);
+        // printf("find  : brch %p %d %f\n", node, node->pivot_dim, node->pivot_value);
 
         assert(node->children[0] != NULL);
         assert(node->children[1] != NULL);

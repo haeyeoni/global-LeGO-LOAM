@@ -3,11 +3,13 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
+    <!-- <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_posco.pt"/> -->
+
+    
     <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_posco.pt"/>
     <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\feature_lists.txt"/>
     <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\key_poses.txt"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"/>
-
     <!--- Run Rviz-->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lego_loam)/launch/test.rviz" />
 
@@ -22,8 +24,11 @@
 	<!-- $ rosrun nodelet nodelet load sample_nodelet/SampleNodeletClass sample_nodelet_manager __name:=SampleNodeletClass_loader-->
 	<node pkg="nodelet" type="nodelet" args="load lego_loam/ImageProjection legoloam_nodelet_manager"
     name="ImageProjection_loader" output="screen">
+        <param name="savePath" value="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\train_image3\\"/>
         <param name="generate_image" value="false"/>
         <param name="min_dist" value="1"/>
+        
+        <param name="skip_generate" value="1"/>
         <param name="max_dist" value="81"/>
     </node>
 	
@@ -36,9 +41,9 @@
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
         <param name="map_save_path" value="$(arg map_save_path)"/>
-        <param name="use_descriptor" value="true"/>
-        <param name="map_skip" value="2"/>
-        <param name="map_voxel" value="0.5"/>
+        <param name="use_descriptor" value="false"/>
+        <param name="map_skip" value="1"/>
+        <param name="map_voxel" value="2.0"/>
 	</node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"

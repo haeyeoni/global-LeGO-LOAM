@@ -3,7 +3,7 @@
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
 
-    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\locnet_descriptor_kitti2000_64.pt"/>
+    <arg name="model_path" default="C:\opt\ros\melodic\catkin_ws\src\window_lego_loam\global-LeGO-LOAM\trained_model\kitti1_600_64.pt"/>
     <arg name="feature_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_feature_lists.txt"/>
     <arg name="key_pose_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_key_poses.txt"/>
     <arg name="map_save_path" default="C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\kitti_lego_loam_map.pcd"/>

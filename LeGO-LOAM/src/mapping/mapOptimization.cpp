@@ -514,6 +514,10 @@ public:
 
     void transformUpdate()
     {
+        transformTobeMapped[0] = 0.0;
+        transformTobeMapped[2] = 0.0;
+        transformTobeMapped[4] = 0.0;
+        
 		if (imuPointerLast >= 0) {
 		    float imuRollLast = 0, imuPitchLast = 0;
 		    while (imuPointerFront != imuPointerLast) {

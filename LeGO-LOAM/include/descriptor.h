@@ -38,7 +38,7 @@
 
 
 using PointType = pcl::PointXYZI;
-const int featureSize = 8;
+const int featureSize = 64;
 
 namespace lego_loam
 {

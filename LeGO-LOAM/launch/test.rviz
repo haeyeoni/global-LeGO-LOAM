@@ -9,6 +9,7 @@ Panels:
         - /TF1/Frames1
         - /Odometry1
         - /Odometry1/Shape1
+        - /Grid1
       Splitter Ratio: 0.4959999918937683
     Tree Height: 710
   - Class: rviz/Selection
@@ -349,7 +350,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 52
+      Max Intensity: 91
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: Trajectory
@@ -457,8 +458,8 @@ Visualization Manager:
     - Alpha: 0.5
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 31.721590042114258
-        Min Value: 2.810455799102783
+        Max Value: 21.364051818847656
+        Min Value: -1.7672851085662842
         Value: true
       Axis: Y
       Channel Name: intensity
@@ -549,7 +550,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Alpha: 0.5
-      Cell Size: 1
+      Cell Size: 50
       Class: rviz/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -582,25 +583,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 197.36569213867188
+      Distance: 488.6702880859375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.3043868839740753
-        Y: 1.2444130182266235
-        Z: 1.9312824010849
+        X: -91.99894714355469
+        Y: 9.407395362854004
+        Z: 1.9187397956848145
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5297968983650208
+      Pitch: 1.5697963237762451
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 2.6336793899536133
+      Yaw: 1.5936789512634277
     Saved: ~
 Window Geometry:
   Displays:

@@ -521,7 +521,7 @@ public:
         transformTobeMapped[2] = 0.0; // roll
         transformTobeMapped[4] = 0.0; // z
 
-        if (transformTobeMapped[3] < 0.03 && transformTobeMapped[5] < 0.03) // not moving
+        if (transformTobeMapped[3] < static_move && transformTobeMapped[5] < static_move) // not moving
         {
             transformTobeMapped[3] = 0.0; // x
             transformTobeMapped[5] = 0.0; // y

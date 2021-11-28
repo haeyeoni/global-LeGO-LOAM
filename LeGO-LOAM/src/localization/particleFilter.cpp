@@ -229,19 +229,19 @@ public:
             return;
         }
         const float dt = (odom_msg->header.stamp - odom_last_time_).toSec();    
-        if (dt < 0.0 || dt > 5.0)
-        {
-            ROS_WARN("Detected time jump in odometry. %f", dt);
-            has_odom_ = false;
-            return;
-        }
-        else if (dt > 0.05)
-        {
+        // if (dt < 0.0 || dt > 5.0)
+        // {
+        //     ROS_WARN("Detected time jump in odometry. %f", dt);
+        //     has_odom_ = false;
+        //     return;
+        // }
+        // else if (dt > 0.05)
+        // {
             odom_model_->setOdoms(odom_prev_, odom_, dt);
             odom_model_->motionPredict(pf_);
             odom_last_time_ = odom_msg->header.stamp;
             odom_prev_ = odom_;
-        }  
+        // }  
     }
 
     void handlePointCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg)
@@ -396,9 +396,6 @@ public:
 
         assert(std::isfinite(biased_mean.pose_.x_) && std::isfinite(biased_mean.pose_.y_) && std::isfinite(biased_mean.pose_.z_) &&
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
-        
-        ///////
-        std::cout<<"particle number: "<< pf_->num_particles_<<std::endl;
 
         publishPose(biased_mean, header);  
 

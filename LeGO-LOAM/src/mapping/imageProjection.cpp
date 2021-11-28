@@ -529,7 +529,7 @@ public:
 
         // check if this segment is valid
         bool feasibleSegment = false;
-        if (allPushedIndSize >= 0) //30)
+        if (allPushedIndSize >= 30)
             feasibleSegment = true;
         else if (allPushedIndSize >= segmentValidPointNum){
             int lineCount = 0;

@@ -416,33 +416,6 @@ public:
                 max_weight_hyp = hyp_cnt;
             }
         }
-    
-    // if(max_weight > 0.0)
-    // {
-
-        // geometry_msgs::PoseWithCovarianceStamped p;
-        // // Fill in the header
-        // p.header.frame_id = global_frame_id_;
-        // p.header.stamp = laser_scan->header.stamp;
-        // // Copy in the pose
-        // p.pose.pose.position.x = hyps[max_weight_hyp].pf_pose_mean.v[0];
-        // p.pose.pose.position.y = hyps[max_weight_hyp].pf_pose_mean.v[1];
-
-        // tf2::Quaternion q;
-        // q.setRPY(0, 0, hyps[max_weight_hyp].pf_pose_mean.v[2]);
-        // tf2::convert(q, p.pose.pose.orientation);
-        // // Copy in the covariance, converting from 3-D to 6-D
-        // pf_sample_set_t* set = pf_->sets + pf_->current_set;
-        // for(int i=0; i<2; i++)
-        // {
-        //     for(int j=0; j<2; j++)
-        //     {
-        //     p.pose.covariance[6*i+j] = set->cov.m[i][j];
-        //     }
-        // }
-        // p.pose.covariance[6*5+5] = set->cov.m[2][2];
-    
-
 
     //////////////////// prev /////////////////////
         // float p_bias;

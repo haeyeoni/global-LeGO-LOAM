@@ -1,28 +1,11 @@
 <launch>
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
-
-    <arg name="goal_x" default="2000000.0"/> <!-- Increase accuracy -->
-    <arg name="goal_y" default="0.0"/>
-    <arg name="goal_radius" default = "3.0"/>
-
-    <arg name="model_path" default="/home/haeyeon/Cocel/locnet_posco.pt"/>
-    <arg name="feature_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco1_feature_lists.txt"/>
-    <arg name="key_pose_path" default="/home/haeyeon/Cocel/lego_loam_result/posco1_key_poses.txt"/>
-    <arg name="map_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco1_lego_loam_map.pcd"/>
-
-    <!-- <arg name="model_path" default="/home/haeyeon/Cocel/locnet_posco2_400_64.pt"/>
-    <arg name="feature_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco2_feature_lists.txt"/>
-    <arg name="key_pose_path" default="/home/haeyeon/Cocel/lego_loam_result/posco2_key_poses.txt"/>
-    <arg name="map_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco2_lego_loam_map.pcd"/>
-     -->
-<!--     
     <arg name="model_path" default="/home/haeyeon/Cocel/locnet_posco3_50_64.pt"/>
     <arg name="feature_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco3_feature_lists.txt"/>
     <arg name="key_pose_path" default="/home/haeyeon/Cocel/lego_loam_result/posco3_key_poses.txt"/>
-    <arg name="map_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco3_lego_loam_map.pcd"/> -->
-
-    <arg name="use_initial_pose" default="false"/>
+    <arg name="map_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco3_lego_loam_map.pcd"/>
+    <arg name="use_initial_pose" default="true"/>
 
     <!--- Run Rviz-->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lego_loam)/launch/localization.rviz" />
@@ -41,6 +24,7 @@
     
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
+    <param name="static_move" value="-1"/>  
         <param name="mapping" value="false"/>
         <param name="static_move" value="-1.0"/>   
 	</node>
@@ -48,64 +32,63 @@
     
     <!--- Initialize -->    
     <node unless="$(arg use_initial_pose)" pkg="nodelet" type="nodelet" args="load lego_loam/GlobalLocalization legoloam_nodelet_manager" name="GlobalLocalization_loader" output="screen">
-        <param name="dist_tolerance" value="50.0"/>
+        
         <param name="model_path" value="$(arg model_path)"/>
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
-        <param name="search_radius" value="0.5"/>
+        <param name="search_radius" value="0.1"/>
         <param name="skip_cnt" value="5"/>
     </node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/ParticleFilter3D legoloam_nodelet_manager" name="ParticleFilter3D_loader" output="screen">
-        <!-- <param name="rot_x" value="0.0"/>
-        <param name="rot_y" value="1.570795"/>
-        <param name="rot_z" value="1.570795"/> -->
-        <!-- <param name="map_yaw" value="0.0"/> -->
-        <param name="goal_x" value="$(arg goal_x)"/>
-        <param name="goal_y" value="$(arg goal_y)"/>
-        <param name="goal_radius" value="$(arg goal_radius)"/>
-
         <param name="map_save_path" value="$(arg map_save_path)"/>        
         <param name="use_initial_pose" value="$(arg use_initial_pose)"/>
         <param name="initial_x" value="0.0"/>
         <param name="initial_y" value="0.0"/>
         <param name="init_yaw" value="0.0"/>
-        <param name="num_particles" value="1000"/>
-        <param name="sampling_covariance" value="0.8"/> <!--Initial convariance-->
+        <param name="max_particles" value="1000"/>
+        <param name="min_particles" value="300"/>
+        <!-- <param name="sampling_covariance" value="0.8"/> -->
         
+        <param name="sampling_covariance" value="1.0"/>
         <param name="skip_measure" value="3"/>
-        <param name="clip_near" value="1.0"/>
+        <param name="clip_near" value="0.5"/>
         <param name="clip_far" value="10000.0"/>
-        <param name="clip_z_min" value="-2.0"/>
-        <param name="clip_z_max" value="15.0"/>
+        <param name="clip_z_min" value="-10.0"/>
+        <param name="clip_z_max" value="20.0"/>
+        <param name="descriptor_coeff" value="50.0"/>
+        <param name="dist_tolerance" value="50.0"/>
+        
+        <param name="pop_err" value="0.05"/>
+        <param name="pop_z" value="3"/>
+        
+        <param name="resample_var_x" value="0.1"/>
+        <param name="resample_var_y" value="0.1"/>
+        <param name="resample_var_yaw" value="0.05"/>
 
-        <param name="resample_var_x" value="0.05"/>
-        <param name="resample_var_y" value="0.05"/>
-        <param name="resample_var_yaw" value="0.1"/>
-
-        <param name="max_search_radius" value="0.5"/>
+        <param name="max_search_radius" value="1.0"/>
         <param name="min_search_radius" value="0.005"/>
         <param name="min_z_pose" value="0.0"/>
-        <param name="max_z_pose" value="20.0"/>
+        <param name="max_z_pose" value="10.0"/>
 
-        <param name="expansion_var_x" value="1.0"/>
-        <param name="expansion_var_y" value="1.0"/>
+        <param name="expansion_var_x" value="2.0"/>
+        <param name="expansion_var_y" value="2.0"/>
         <param name="expansion_var_yaw" value="0.5"/>
 
-        <param name="map_downsample_x" value="0.2"/>
-        <param name="map_downsample_y" value="0.2"/>
-        <param name="map_downsample_z" value="0.2"/>
+        <param name="map_downsample_x" value="0.3"/>
+        <param name="map_downsample_y" value="0.3"/>
+        <param name="map_downsample_z" value="0.3"/>
         <param name="map_chunk" value="500"/>
         
-        <param name="odom_err_lin_lin" value="0.001"/>
-        <param name="odom_err_lin_ang" value="0.001"/>
-        <param name="odom_err_ang_lin" value="0.001"/>
-        <param name="odom_err_ang_ang" value="0.001"/>
+        <param name="odom_err_lin_lin" value="0.01"/>
+        <param name="odom_err_lin_ang" value="0.01"/>
+        <param name="odom_err_ang_lin" value="0.01"/>
+        <param name="odom_err_ang_ang" value="0.01"/>
         
         <param name="downsample_x" value="0.1"/>
         <param name="downsample_y" value="0.1"/>
         <param name="downsample_z" value="0.1"/>
-        <param name="match_ratio_thresh" value="0.3"/>     
+        <param name="match_ratio_thresh" value="0.6"/>     
     </node>
 
 </launch>

@@ -9,7 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <cfloat>
- 
+#include <stdlib.h>
 
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
@@ -50,6 +50,7 @@
 #include <model/odom_model.h>
 #include <model/lidar_model.h>
 #include <parameter.h>
+#include <pf_kdtree.h>
 
 using PointType = pcl::PointXYZ; // with intensity
 using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
@@ -113,10 +114,9 @@ private:
     // flag
     size_t cnt_measure_;
     bool map_rotated_;
-    bool in_boundary_; 
 
 public:
-    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false), in_boundary_(false) {}
+    ParticleFilter3D(): tfl_(tfbuf_), cnt_measure_(0), map_rotated_(false) {}
 
     void onInit() 
     {       
@@ -141,7 +141,7 @@ public:
         loaded_map = true;
         
         // reset particle filter and model 
-        pf_.reset(new ParticleFilter<PoseState>(params_.num_particles_, params_.sampling_covariance_)); 
+        pf_.reset(new ParticleFilter<PoseState>(params_.max_particles_, params_.min_particles_, params_.sampling_covariance_, params_.pop_err_, params_.pop_z_, params_.descriptor_coeff_)); 
         odom_model_.reset(new OdomModel(params_.odom_lin_err_sigma_, params_.odom_ang_err_sigma_, params_.odom_lin_err_tc_, params_.odom_ang_err_tc_,
                                         params_.max_z_pose_, params_.min_z_pose_));
         lidar_model_.reset(new LidarModel(params_.num_points_, params_.num_points_global_, params_.max_search_radius_, params_.min_search_radius_, 
@@ -229,19 +229,19 @@ public:
             return;
         }
         const float dt = (odom_msg->header.stamp - odom_last_time_).toSec();    
-        if (dt < 0.0 || dt > 5.0)
-        {
-            ROS_WARN("Detected time jump in odometry. %f", dt);
-            has_odom_ = false;
-            return;
-        }
-        else if (dt > 0.05)
-        {
+        // if (dt < 0.0 || dt > 5.0)
+        // {
+        //     ROS_WARN("Detected time jump in odometry. %f", dt);
+        //     has_odom_ = false;
+        //     return;
+        // }
+        // else if (dt > 0.05)
+        // {
             odom_model_->setOdoms(odom_prev_, odom_, dt);
             odom_model_->motionPredict(pf_);
             odom_last_time_ = odom_msg->header.stamp;
             odom_prev_ = odom_;
-        }  
+        // }  
     }
 
     void handlePointCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg)
@@ -352,11 +352,11 @@ public:
         ds.filter(*pc_local_full_);
         
         pcl::PointCloud<PointType>::Ptr pc_locals; 
-        lidar_model_->setParticleNumber(params_.num_particles_, pf_->getParticleSize()); // Modify number of particles
+        lidar_model_->setParticleNumber(params_.max_particles_, pf_->getParticleSize()); // Modify number of particles
         
         // 4. Calculate the particle filter statistics: mean and covariance 
         const PoseState prev_mean = pf_->mean();
-        const float cov_ratio = std::max(0.1f, static_cast<float>(params_.num_particles_) / pf_->getParticleSize());
+        const float cov_ratio = std::max(0.1f, static_cast<float>(params_.max_particles_) / pf_->getParticleSize());
         const std::vector<PoseState> prev_cov = pf_->covariance(cov_ratio); 
         
         // 5. Random sample with normal distribution
@@ -372,11 +372,8 @@ public:
         
         // 6. Correction Step with Lidar model
         float match_ratio_max;
-        // if (in_boundary_)
-        //     match_ratio_max = lidar_model_->measureCorrectICP(pf_, pc_locals, global_map_, origins);
-        // else
         match_ratio_max = lidar_model_->measureCorrect(pf_, pc_locals, origins);
-        // std::cout<<"match ratio: "<< match_ratio_max <<std::endl;
+
         if (match_ratio_max < params_.match_ratio_thresh_)
         {
             ROS_WARN_THROTTLE(3.0, "Low match ratio. Expansion resetting"); //every 3.0 seconds
@@ -393,24 +390,15 @@ public:
         pf_-> updateNoise(params_.odom_err_lin_lin_, params_.odom_err_lin_ang_,
                         params_.odom_err_ang_lin_, params_.odom_err_ang_ang_);
 
-        auto biased_mean = pf_->biasedMean(odom_prev_, params_.num_particles_, params_.bias_var_dist_, params_.bias_var_ang_); 
+        // auto biased_mean = pf_->biasedMean(odom_prev_, params_.num_particles_, params_.bias_var_dist_, params_.bias_var_ang_); 
+        auto biased_mean = pf_->biasedMean(odom_prev_, params_.bias_var_dist_, params_.bias_var_ang_); 
         biased_mean.rot_.normalize();
 
         assert(std::isfinite(biased_mean.pose_.x_) && std::isfinite(biased_mean.pose_.y_) && std::isfinite(biased_mean.pose_.z_) &&
             std::isfinite(biased_mean.rot_.x_) && std::isfinite(biased_mean.rot_.y_) && std::isfinite(biased_mean.rot_.z_) && std::isfinite(biased_mean.rot_.w_));
-        
+
         publishPose(biased_mean, header);  
-        
-        // Check the goal pose
-        if (pow(biased_mean.pose_.x_ - params_.goal_x_, 2) + pow(biased_mean.pose_.y_ - params_.goal_y_, 2) < pow(params_.goal_radius_, 2))
-        {
-            ROS_INFO("WITHIN GOAL BOUNDARY. CHANGE TO ICP");
-            in_boundary_ = true;
-        }
-        else 
-        {
-            in_boundary_ = false;
-        }
+
         // 7. Publish map tf
         ros::Time localized_current = ros::Time::now();
         float dt = (localized_current - localized_last_).toSec();
@@ -432,7 +420,15 @@ public:
         }     
         else
         {
-            pf_->reinit(initial_msg->data, initial_msg->layout.dim[0].size);
+            float distance = initial_msg->layout.dim[1].size;
+            pf_->updateDescriptorDistance(distance);
+
+            if (sqrt(distance) > params_.dist_tolerance_)
+            {
+                std::cout<<"Might be kidnapped!"<<sqrt(distance)<<std::endl;      
+                pf_->reinit(initial_msg->data, initial_msg->layout.dim[0].size);
+            }
+            
         }
     }
 
@@ -449,8 +445,9 @@ public:
             pf_->init(pose);
             initialized = true;
         }
+           
     }
-
+    
     void publishParticles(const ros::TimerEvent& event)
     {
         if(initialized)
@@ -458,7 +455,7 @@ public:
             geometry_msgs::PoseArray particles;
             particles.header.stamp = ros::Time::now();
             particles.header.frame_id = "map";
-            
+            printf("particle num: %d \n", pf_->getParticleSize());
             for (size_t i = 0; i < pf_->getParticleSize(); i++)
             {
                 geometry_msgs::Pose particle;
@@ -496,7 +493,7 @@ public:
         pose.pose.pose.orientation.y = biased_mean.rot_.y_;
         pose.pose.pose.orientation.z = biased_mean.rot_.z_;
         pose.pose.pose.orientation.w = biased_mean.rot_.w_;
-        auto cov = pf_->covariance(std::max(0.1f, static_cast<float>(params_.num_particles_)/pf_->getParticleSize()));
+        auto cov = pf_->covariance(std::max(0.1f, static_cast<float>(params_.max_particles_)/pf_->getParticleSize()));
         for (size_t i = 0; i < 36; i ++)
             pose.pose.covariance[i] = cov[i / 6][i % 6];
         pubPose.publish(pose);

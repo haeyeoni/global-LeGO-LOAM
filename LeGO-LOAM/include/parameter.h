@@ -18,15 +18,15 @@ public:
     {
         ROS_INFO("parameter loading");
 
-        pnh.param("goal_x", goal_x_, 0.0); 
-        pnh.param("goal_y", goal_y_, 0.0); 
-        pnh.param("goal_radius", goal_radius_, 0.2); 
-                  
+        pnh.param("pop_err", pop_err_, 0.01); 
+        pnh.param("pop_z", pop_z_, 3.0); 
+
         pnh.param<std::string>("map_save_path", map_save_path_, "C:\\Users\\Haeyeon Kim\\Desktop\\lego_loam_result\\lego_loam_map.pcd"); 
         pnh.param("use_initial_pose", use_initial_pose_, false); 
         pnh.param("initial_x", initial_x_, 0.0); 
         pnh.param("initial_y", initial_y_, 0.0); 
         pnh.param("initial_yaw", initial_z_, 0.0); 
+        pnh.param("descriptor_coeff", descriptor_coeff_, 0.0); 
         
         
         pnh.param("sampling_covariance", sampling_covariance_, 0.1); 
@@ -37,7 +37,8 @@ public:
         pnh.param("map_pitch", map_pitch_, 0.0);
         pnh.param("map_yaw", map_yaw_, 1.570795);
 
-        pnh.param("num_particles", num_particles_, 64);
+        pnh.param("max_particles", max_particles_, 100);
+        pnh.param("min_particles", min_particles_, 20);
         pnh.param("map_frame", frame_ids_["map"], std::string("map"));
         pnh.param("base_frame", frame_ids_["base_link"], std::string("base_link"));
         pnh.param("odom_frame", frame_ids_["odom"], std::string("odom"));
@@ -116,17 +117,17 @@ public:
         pnh.param("expansion_var_pitch", expansion_var_pitch_, 0.05);
         pnh.param("expansion_var_yaw", expansion_var_yaw_, 0.05);
         pnh.param("match_ratio_thresh", match_ratio_thresh_, 0.0);
+        pnh.param("dist_tolerance", dist_tolerance_, 100.0);
         return true;
     }
 
 public:
     std::map<std::string, std::string> frame_ids_;
     std::string map_save_path_;
-    int num_particles_;
+    int max_particles_, min_particles_;
     int skip_measure_;
     
-    double goal_x_, goal_y_, goal_radius_;
-
+    double pop_err_, pop_z_;
     bool use_initial_pose_;
     double initial_x_, initial_y_, initial_z_;
 
@@ -134,6 +135,8 @@ public:
     double map_roll_, map_pitch_, map_yaw_;
     double sampling_covariance_;
 
+    double dist_tolerance_;
+    double descriptor_coeff_;
     double map_downsample_x_;
     double map_downsample_y_;
     double map_downsample_z_;

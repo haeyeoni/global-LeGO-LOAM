@@ -82,11 +82,12 @@ public:
     double m[5], c[2][2];
     double cov[3][3];
     double pop_err_, pop_z_;
+    double descriptor_distance_, descriptor_coeff_;
 
     GaussianMixture<PoseState>::Ptr gmm_;
 
     explicit ParticleFilter(const int max_particles, const int min_particles, 
-                        const double sampling_covariance, const double pop_err, const double pop_z)
+                        const double sampling_covariance, const double pop_err, const double pop_z, const double descriptor_coeff)
     {
         particles_.resize(max_particles);
         particles_dup_.resize(max_particles);
@@ -101,6 +102,8 @@ public:
         clusters.reserve(max_particles);
         pop_err_ = pop_err;
         pop_z_ = pop_z_;
+        descriptor_distance_ = 0.0;
+        descriptor_coeff_ = descriptor_coeff;
     }
 
     void init(std::vector<float> poses)
@@ -121,6 +124,11 @@ public:
 
         pf_cluster_stats();
         printf("finishing inserting to kdtree (node: %d) \n", kdtree->leaf_count);
+    }
+
+    void updateDescriptorDistance(float dist)
+    {
+        descriptor_distance_ = dist;
     }
 
     void reinit(std::vector<float> poses, float distance)
@@ -609,7 +617,9 @@ public:
         c = sqrt(2 / (9 * ((double) k - 1))) * pop_z_;
         x = a - b + c;
 
-        n = (int) ceil((k - 1) / (2 * pop_err_) * x * x * x);
+        // n = (int) ceil((k - 1) / (2 * pop_err_) * x * x * x);
+
+        n = (int) ceil((k - 1) / (2 * pop_err_) * x * x * x) + (int) (descriptor_coeff_ * descriptor_distance_);
 
         if (n < min_particles_)
         {

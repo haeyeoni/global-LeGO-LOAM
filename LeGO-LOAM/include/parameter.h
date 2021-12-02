@@ -26,6 +26,7 @@ public:
         pnh.param("initial_x", initial_x_, 0.0); 
         pnh.param("initial_y", initial_y_, 0.0); 
         pnh.param("initial_yaw", initial_z_, 0.0); 
+        pnh.param("descriptor_coeff", descriptor_coeff_, 0.0); 
         
         
         pnh.param("sampling_covariance", sampling_covariance_, 0.1); 
@@ -116,6 +117,7 @@ public:
         pnh.param("expansion_var_pitch", expansion_var_pitch_, 0.05);
         pnh.param("expansion_var_yaw", expansion_var_yaw_, 0.05);
         pnh.param("match_ratio_thresh", match_ratio_thresh_, 0.0);
+        pnh.param("dist_tolerance", dist_tolerance_, 100.0);
         return true;
     }
 
@@ -133,6 +135,8 @@ public:
     double map_roll_, map_pitch_, map_yaw_;
     double sampling_covariance_;
 
+    double dist_tolerance_;
+    double descriptor_coeff_;
     double map_downsample_x_;
     double map_downsample_y_;
     double map_downsample_z_;

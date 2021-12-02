@@ -34,7 +34,6 @@ private:
     string featureSavePath;
     string keyPosePath;
     double searchRadius;
-    double dist_tolerance;
     pcl::PointCloud<PointType>::Ptr globalMap;
     pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
     std::vector<std::vector<float>> keyPoses;
@@ -62,7 +61,6 @@ public:
         nhp.param<std::string>("key_pose_path", keyPosePath, "/home/haeyeon/key_poses.txt"); 
         nhp.param<double>("search_radius", searchRadius, 10.0); 
         nhp.param<int>("skip_cnt", skip_cnt, 1); 
-        nhp.param<double>("dist_tolerance", dist_tolerance, 100.0); 
         locnetManager->loadModel(modelPath);
         locnetManager->loadFeatureCloud();
         loadKeyPose();     
@@ -161,13 +159,16 @@ public:
                     dist += pow(currPose[i]-poseData[i], 2);
 
                 std::cout<<"distance: "<<sqrt(dist)<<std::endl;
-                if (sqrt(dist) > dist_tolerance)
+                if (!isinf(dist))
                 {
-                    std::cout<<"Might be kidnapped!"<<sqrt(dist)<<std::endl;
+                //     std::cout<<"Might be kidnapped!"<<sqrt(dist)<<std::endl;
                     initialPoseMsg.data = poseData; // data: x pose, y pose, z pose
                     initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
-                    initialPoseMsg.layout.dim[0].label = "distance";
+                    initialPoseMsg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+                    initialPoseMsg.layout.dim[0].label = "kd_distance";
                     initialPoseMsg.layout.dim[0].size = distance;
+                    initialPoseMsg.layout.dim[1].label = "prev_distance";
+                    initialPoseMsg.layout.dim[1].size = dist;
                     
                     pubInitialize.publish(initialPoseMsg); 
                 }

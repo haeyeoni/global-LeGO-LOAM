@@ -141,7 +141,7 @@ public:
         loaded_map = true;
         
         // reset particle filter and model 
-        pf_.reset(new ParticleFilter<PoseState>(params_.max_particles_, params_.min_particles_, params_.sampling_covariance_, params_.pop_err_, params_.pop_z_)); 
+        pf_.reset(new ParticleFilter<PoseState>(params_.max_particles_, params_.min_particles_, params_.sampling_covariance_, params_.pop_err_, params_.pop_z_, params_.descriptor_coeff_)); 
         odom_model_.reset(new OdomModel(params_.odom_lin_err_sigma_, params_.odom_ang_err_sigma_, params_.odom_lin_err_tc_, params_.odom_ang_err_tc_,
                                         params_.max_z_pose_, params_.min_z_pose_));
         lidar_model_.reset(new LidarModel(params_.num_points_, params_.num_points_global_, params_.max_search_radius_, params_.min_search_radius_, 
@@ -420,7 +420,15 @@ public:
         }     
         else
         {
-            pf_->reinit(initial_msg->data, initial_msg->layout.dim[0].size);
+            float distance = initial_msg->layout.dim[1].size;
+            pf_->updateDescriptorDistance(distance);
+
+            if (sqrt(distance) > params_.dist_tolerance_)
+            {
+                std::cout<<"Might be kidnapped!"<<sqrt(distance)<<std::endl;      
+                pf_->reinit(initial_msg->data, initial_msg->layout.dim[0].size);
+            }
+            
         }
     }
 
@@ -447,7 +455,7 @@ public:
             geometry_msgs::PoseArray particles;
             particles.header.stamp = ros::Time::now();
             particles.header.frame_id = "map";
-            
+            printf("particle num: %d \n", pf_->getParticleSize());
             for (size_t i = 0; i < pf_->getParticleSize(); i++)
             {
                 geometry_msgs::Pose particle;

@@ -2,7 +2,7 @@
     
     <!--- Sim Time -->
     <param name="/use_sim_time" value="true" />
-
+    
     <arg name="model_path" default="/home/haeyeon/Cocel/locnet_posco3_50_64.pt"/>
     <arg name="feature_save_path" default="/home/haeyeon/Cocel/lego_loam_result/posco3_feature_lists.txt"/>
     <arg name="key_pose_path" default="/home/haeyeon/Cocel/lego_loam_result/posco3_key_poses.txt"/>
@@ -32,15 +32,15 @@
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/MapOptimization legoloam_nodelet_manager"
     name="MapOptimization_loader" output="screen">
-        <param name="static_move" value="-1"/>    
+        <param name="static_move" value="0.1"/>    
         <param name="mapping" value="true"/>    
         <param name="model_path" value="$(arg model_path)"/>        
         <param name="feature_save_path" value="$(arg feature_save_path)"/>
         <param name="key_pose_path" value="$(arg key_pose_path)"/>
         <param name="map_save_path" value="$(arg map_save_path)"/>
-        <param name="use_descriptor" value="true"/>
+        <param name="use_descriptor" value="false"/>
         <param name="map_skip" value="3"/>
-        <param name="map_voxel" value="1.0"/>
+        <param name="map_voxel" value="0.5"/>
 	</node>
 
     <node pkg="nodelet" type="nodelet" args="load lego_loam/TransformFusion legoloam_nodelet_manager"
